@@ -1,0 +1,11 @@
+name: CI
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "TODO: thêm bước lint/test khi có code backend & frontend"

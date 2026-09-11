@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+.next/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Database
+*.sqlite

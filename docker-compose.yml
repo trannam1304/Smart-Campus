@@ -1,0 +1,3 @@
+# Placeholder - cấu hình services (backend, frontend, postgres) sẽ bổ sung khi có code
+version: "3.9"
+services: {}
