@@ -97,13 +97,17 @@ classDiagram
         +String fullName
         +String password
         +String faculty
+        +int noShowCount
         +Role role
         +AccountStatus status
+        +isLibraryTrained() boolean
+        +isLocked() boolean
     }
     class Role {
         <<enumeration>>
         STUDENT
-        ADMIN_STAFF
+        ADMIN
+        STAFF
     }
     class AccountStatus {
         <<enumeration>>
