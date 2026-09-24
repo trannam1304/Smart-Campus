@@ -1,0 +1,4 @@
+com\smartcampus\backend\config\CorsConfig.class
+com\smartcampus\backend\SmartCampusBackendApplication.class
+com\smartcampus\backend\config\SecurityConfig.class
+com\smartcampus\backend\config\OpenApiConfig.class
