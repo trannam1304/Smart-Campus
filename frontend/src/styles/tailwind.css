@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --primary: #2563EB;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #334155;
+  --accent: #16A34A;
+  --accent-foreground: #FFFFFF;
+  --muted: #E2E8F0;
+  --muted-foreground: #64748B;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --border: #CBD5E1;
+  --input: #E2E8F0;
+  --ring: #2563EB;
+  --radius: 12px;
+  --font-sans: var(--font-dm-sans), sans-serif;
+  --success: #16A34A;
+  --success-foreground: #FFFFFF;
+  --error: #DC2626;
+  --error-foreground: #FFFFFF;
+  --warning: #D97706;
+  --warning-foreground: #FFFFFF;
+  --camera-bg: #0F172A;
+  --scanner-bracket: #34D399;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  h1, h2, h3, h4, h5, h6, p {
+    margin: 0;
+  }
+}
+
+@layer utilities {
+  .scanner-bracket-tl {
+    border-top: 3px solid var(--scanner-bracket);
+    border-left: 3px solid var(--scanner-bracket);
+    border-radius: 4px 0 0 0;
+  }
+  .scanner-bracket-tr {
+    border-top: 3px solid var(--scanner-bracket);
+    border-right: 3px solid var(--scanner-bracket);
+    border-radius: 0 4px 0 0;
+  }
+  .scanner-bracket-bl {
+    border-bottom: 3px solid var(--scanner-bracket);
+    border-left: 3px solid var(--scanner-bracket);
+    border-radius: 0 0 0 4px;
+  }
+  .scanner-bracket-br {
+    border-bottom: 3px solid var(--scanner-bracket);
+    border-right: 3px solid var(--scanner-bracket);
+    border-radius: 0 0 4px 0;
+  }
+  .scan-line {
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(52, 211, 153, 0.6),
+      transparent
+    );
+    animation: scanMove 2.5s ease-in-out infinite;
+  }
+  @keyframes scanMove {
+    0% { top: 10%; }
+    50% { top: 85%; }
+    100% { top: 10%; }
+  }
+  .toast-slide-in {
+    animation: toastIn 0.3s ease-out forwards;
+  }
+  @keyframes toastIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  .toast-slide-out {
+    animation: toastOut 0.3s ease-in forwards;
+  }
+  @keyframes toastOut {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+  }
+  .tab-active {
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+  }
+  .mobile-frame {
+    max-width: 390px;
+    min-height: 844px;
+  }
+  .flashlight-glow {
+    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.4);
+    animation: flashlightPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes flashlightPulse {
+    0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(250, 204, 21, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+  }
+  .upload-zone {
+    border: 2px dashed var(--border);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+  .upload-zone:hover {
+    border-color: var(--primary);
+    background-color: rgba(37, 99, 235, 0.04);
+  }
+  .upload-zone.drag-over {
+    border-color: var(--primary);
+    background-color: rgba(37, 99, 235, 0.08);
+  }
+  .btn-primary {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    transition: all 0.15s ease;
+  }
+  .btn-primary:hover {
+    background-color: #1D4ED8;
+  }
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+    transition: all 0.15s ease;
+  }
+  .btn-secondary:hover {
+    background-color: rgba(37, 99, 235, 0.06);
+  }
+  .btn-secondary:active {
+    transform: scale(0.98);
+  }
+  .select-custom {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+  }
+}
