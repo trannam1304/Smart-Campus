@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: smart-campus-backend
+
+  profiles:
+    active: dev
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # đổi thành 'validate' khi lên production
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+# Cấu hình JWT (FR-1.2, FR-1.3, NFR-03)
+app:
+  jwt:
+    secret: CHANGE_ME_SECRET_KEY_MIN_32_CHARS
+    expiration-ms: 86400000   # 24h
+
+  booking:
+    weekly-quota-hours: 10     # FR-3.3
+    auto-release-minutes: 15   # FR-5.3
+    checkin-early-limit-minutes: 15   # FR-5.2
+
+logging:
+  level:
+    com.smartcampus.backend: DEBUG

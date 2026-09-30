@@ -3,9 +3,13 @@ package com.smartcampus.backend.dto.request;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
 public class BookingRequest {
     @NotNull(message = "ID phòng không được để trống")
     private Long roomId;

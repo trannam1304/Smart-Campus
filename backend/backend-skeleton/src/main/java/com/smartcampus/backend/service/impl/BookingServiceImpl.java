@@ -10,6 +10,7 @@ import com.smartcampus.backend.entity.enums.RoomStatus;
 import com.smartcampus.backend.repository.BookingRepository;
 import com.smartcampus.backend.repository.RoomRepository;
 import com.smartcampus.backend.repository.UserRepository;
+import com.smartcampus.backend.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
@@ -26,7 +27,7 @@ import java.util.UUID;
 
 
 @Service
-public class BookingService {
+public class BookingServiceImpl implements BookingService {
 
     @Autowired
     private BookingRepository bookingRepository;
@@ -54,7 +55,7 @@ public class BookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin tài khoản."));
 
         // 2. Kiểm tra thông tin phòng
-        Room room = roomRepository.findById(BookingRequest.getRoomId())
+        Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new IllegalArgumentException("Phòng tự học không tồn tại."));
 
         if (room.getStatus() == RoomStatus.MAINTENANCE) {
