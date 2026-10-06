@@ -52,14 +52,14 @@ xuyên suốt — xem comment trong `SecurityConfig`, `CorsConfig`, `application
 2. Cập nhật username/password trong `application-dev.yml` (hoặc `application-mysql.yml`
    rồi đổi `spring.profiles.active: mysql` trong `application.yml`).
 3. Chạy: Bắt buộc phải tải Docker vể máy
-  `cd D:\repo\Smart-Campus`
+  `cd ...\repo\Smart-Campus`
   `docker compose up -d mysql`
-  `docker compose ps`
   Sau khi chạy xong bạn vào Docker xem có container `smart-campus` đã chạy chưa.
   Sau đó, kiêm tra trong Mysql Workbench xem đã kết nối Mysql Connection chưa.
-  Thấy có Connection thì bấm vào và nhaoaj password:`root`. Tiếp tục kiểm tra xem có database `smart-campus-db` chưa. Nếu tất cả đầy đủ thì chạy lênh sau.
-  `cd D:\repo\Smart-Campus\backend\backend-skeleton`
-  `.\mvnw spring-boot:run'`
+  Thấy có Connection thì bấm vào và nhập password:`root`. Tiếp tục kiểm tra xem có database `smart_campus_db` chưa. Nếu tất cả đầy đủ thì chạy lệnh sau.
+  `cd ...\repo\Smart-Campus\backend\backend-skeleton`
+  `.\mvnw spring-boot:run`
+  (Lưu ý phần ... trước repo không được để Tiếng Việt có dấu )
 
 4. Swagger UI: `http://localhost:8080/swagger-ui.html`
 
