@@ -50,12 +50,24 @@ public class RoomServiceImpl implements RoomService {
     @Transactional(readOnly = true)
     public List<ManagedRoomResponse> getRooms(int page, int limit) {
         validatePage(page, limit);
-        return queryRooms(ROOM_SELECT + """
+        List<Long> roomIds = jdbc.query("""
+                SELECT r.room_id
+                FROM rooms r
                 ORDER BY r.room_id
                 LIMIT :limit OFFSET :offset
                 """, new MapSqlParameterSource()
                 .addValue("limit", limit)
-                .addValue("offset", (long) (page - 1) * limit));
+                .addValue("offset", (long) (page - 1) * limit),
+                (rs, rowNum) -> rs.getLong("room_id"));
+
+        if (roomIds.isEmpty()) {
+            return List.of();
+        }
+
+        return queryRooms(ROOM_SELECT + """
+                WHERE r.room_id IN (:roomIds)
+                ORDER BY r.room_id, e.equipment_id
+                """, new MapSqlParameterSource("roomIds", roomIds));
     }
 
     @Override
@@ -319,11 +331,15 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private long parseId(String value, String prefix, String resourceName) {
-        if (value == null || !value.startsWith(prefix)) {
+        if (value == null || value.isBlank()) {
             throw new ResourceNotFoundException("Mã " + resourceName + " không hợp lệ.");
         }
+        String cleaned = value.trim();
+        if (cleaned.toUpperCase().startsWith(prefix.toUpperCase())) {
+            cleaned = cleaned.substring(prefix.length());
+        }
         try {
-            long id = Long.parseLong(value.substring(prefix.length()));
+            long id = Long.parseLong(cleaned);
             if (id < 1) {
                 throw new NumberFormatException("ID phải lớn hơn 0.");
             }

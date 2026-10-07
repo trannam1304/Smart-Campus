@@ -46,22 +46,56 @@ backend/
 Chỉ số phi chức năng (NFR-01 → NFR-04: hiệu năng, độ sẵn sàng, bảo mật, responsive) áp dụng
 xuyên suốt — xem comment trong `SecurityConfig`, `CorsConfig`, `application.yml`.
 
-## Cách chạy (sau khi các nhóm code xong phần của mình)
+## Hướng dẫn chạy dự án (Getting Started)
 
-1. Cài PostgreSQL (hoặc MySQL) và tạo database `smart_campus_db`.
-2. Cập nhật username/password trong `application-dev.yml` (hoặc `application-mysql.yml`
-   rồi đổi `spring.profiles.active: mysql` trong `application.yml`).
-3. Chạy: Bắt buộc phải tải Docker vể máy
-  `cd ...\repo\Smart-Campus`
-  `docker compose up -d mysql`
-  Sau khi chạy xong bạn vào Docker xem có container `smart-campus` đã chạy chưa.
-  Sau đó, kiêm tra trong Mysql Workbench xem đã kết nối Mysql Connection chưa.
-  Thấy có Connection thì bấm vào và nhập password:`root`. Tiếp tục kiểm tra xem có database `smart_campus_db` chưa. Nếu tất cả đầy đủ thì chạy lệnh sau.
-  `cd ...\repo\Smart-Campus\backend\backend-skeleton`
-  `.\mvnw spring-boot:run`
-  (Lưu ý phần ... trước repo không được để Tiếng Việt có dấu )
+### Yêu cầu môi trường (Prerequisites)
+- **JDK 17** trở lên (`java -version`).
+- **Docker Desktop** (khuyên dùng để chạy MySQL tự động chỉ với 1 câu lệnh).
+- *(Lưu ý quan trọng)*: Đường dẫn thư mục chứa dự án **không được chứa dấu tiếng Việt hoặc khoảng trắng** (ví dụ tránh `D:\Đại học\...` vì Maven wrapper sẽ bị lỗi đường dẫn).
 
-4. Swagger UI: `http://localhost:8080/swagger-ui.html`
+---
+
+### Các bước khởi chạy chi tiết:
+
+#### Bước 1: Khởi động cơ sở dữ liệu MySQL (bằng Docker)
+Mở Terminal / PowerShell tại thư mục gốc `Smart-Campus`:
+```bash
+docker compose up -d mysql
+```
+* Lệnh trên sẽ tự động tải image MySQL 8.0 và tạo container `smart-campus-mysql` chạy tại cổng `3306`.
+* Docker đã thiết lập sẵn thông số kết nối:
+  - **Database:** `smart_campus_db`
+  - **Username:** `root`
+  - **Password:** `root`
+* *(Tùy chọn)*: Bạn có thể dùng MySQL Workbench kết nối vào `localhost:3306` (user: `root`, pass: `root`) để quan sát cơ sở dữ liệu.
+* *(Nếu máy không cài Docker)*: Bạn có thể cài MySQL 8.0 trực tiếp trên máy, tạo database `smart_campus_db`, rồi kiểm tra lại user/password trong `src/main/resources/application-mysql.yml`.
+
+#### Bước 2: Khởi động Backend Spring Boot
+Di chuyển vào thư mục backend và chạy lệnh:
+* **Trên Windows (PowerShell / CMD):**
+  ```powershell
+  cd backend/backend-skeleton
+  .\mvnw spring-boot:run
+  ```
+* **Trên Linux / macOS:**
+  ```bash
+  cd backend/backend-skeleton
+  ./mvnw spring-boot:run
+  ```
+
+> **Lưu ý:** Khi Spring Boot khởi động, công cụ **Flyway** sẽ tự động chạy các script migration từ `V1` đến `V11` để tạo đầy đủ các bảng và chèn sẵn 65 phòng học, tòa nhà G, và tài khoản quản trị viên mẫu. Bạn **không cần** phải import file SQL thủ công.
+
+#### Bước 3: Trải nghiệm & Kiểm tra API trên Swagger UI
+Sau khi terminal báo `Started SmartCampusBackendApplication in ... seconds`, mở trình duyệt truy cập:
+👉 **`http://localhost:8088/swagger-ui.html`**
+
+*(Cổng server hiện tại được cấu hình trong `application.yml` là **8088**).*
+
+#### Bước 4: Chạy kiểm thử tự động (Unit Test)
+Để kiểm tra tính đúng đắn của các API mà không cần kết nối cơ sở dữ liệu:
+```powershell
+.\mvnw test -Dtest=RoomControllerTest
+```
 
 ## Quy ước khi code thêm
 
