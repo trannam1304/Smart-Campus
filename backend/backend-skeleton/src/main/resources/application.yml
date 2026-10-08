@@ -3,18 +3,18 @@ spring:
     name: smart-campus-backend
 
   profiles:
-    active: dev
+    active: mysql
 
   jpa:
     hibernate:
-      ddl-auto: update   # đổi thành 'validate' khi lên production
+      ddl-auto: update   # đổi thànha 'validate' khi lên production
     show-sql: true
     properties:
       hibernate:
         format_sql: true
 
 server:
-  port: 8080
+  port: 8088
 
 # Cấu hình JWT (FR-1.2, FR-1.3, NFR-03)
 app:
