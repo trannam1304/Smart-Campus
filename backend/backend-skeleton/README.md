@@ -67,7 +67,7 @@ docker compose up -d mysql
   - **Database:** `smart_campus_db`
   - **Username:** `root`
   - **Password:** `root`
-* *(Tùy chọn)*: Bạn có thể dùng MySQL Workbench kết nối vào `localhost:3306` (user: `root`, pass: `root`) để quan sát cơ sở dữ liệu.
+* *(Tùy chọn)*: Bạn có thể dùng MySQL Workbench kết nối vào `localhost:3307` (user: `root`, pass: `root`) để quan sát cơ sở dữ liệu.
 * *(Nếu máy không cài Docker)*: Bạn có thể cài MySQL 8.0 trực tiếp trên máy, tạo database `smart_campus_db`, rồi kiểm tra lại user/password trong `src/main/resources/application-mysql.yml`.
 
 #### Bước 2: Khởi động Backend Spring Boot
@@ -75,7 +75,7 @@ Di chuyển vào thư mục backend và chạy lệnh:
 * **Trên Windows (PowerShell / CMD):**
   ```powershell
   cd backend/backend-skeleton
-  .\mvnw spring-boot:run
+  .\mvnw spring-boot:run 
   ```
 * **Trên Linux / macOS:**
   ```bash

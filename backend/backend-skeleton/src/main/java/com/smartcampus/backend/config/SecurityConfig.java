@@ -24,8 +24,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // TODO: cấu hình chi tiết: csrf().disable(), sessionManagement STATELESS,
-        // permitAll cho /api/auth/**, addFilterBefore(jwtAuthFilter, ...)
+        http
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         return http.build();
     }
 }
