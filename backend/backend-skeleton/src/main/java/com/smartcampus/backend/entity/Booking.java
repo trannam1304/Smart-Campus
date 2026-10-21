@@ -53,6 +53,9 @@ public class Booking extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private BookingStatus status; // CONFIRMED / IN_USE / CANCELLED_AUTO / COMPLETED / ...
 
+    @Column(name = "checkin_time")
+    private LocalDateTime checkinTime; // Thời gian thực tế quét mã QR check-in (FR-5.2)
+
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BookingMember> bookingMembers = new ArrayList<>();
 

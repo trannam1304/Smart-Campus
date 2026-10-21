@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Truy vấn lượt đặt phòng (bookings). Liên quan: FR-3.1, FR-3.2, FR-3.3, FR-5.2, FR-5.3
@@ -76,6 +77,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     // FR-5.3: Các booking CONFIRMED quá hạn để auto-release
     // ------------------------------------------------------------------
     List<Booking> findByRoomIdAndStartTimeBetween(Long roomId, LocalDateTime from, LocalDateTime to);
+
+    // FR-5.2: Tìm booking qua mã QR quét
+    Optional<Booking> findByQrCode(String qrCode);
 
     @Transactional
     @Query("UPDATE Booking b SET b.status = :status WHERE b.id = :id")
