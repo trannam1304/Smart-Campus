@@ -1,28 +1,19 @@
 package com.smartcampus.backend.service;
 
+import com.smartcampus.backend.dto.request.CheckinRequest;
 import com.smartcampus.backend.dto.response.CheckinResponse;
 
 /**
- * Nghiệp vụ nhóm Checkin.
- * Liên quan: FR-5.1, FR-5.2, FR-5.3
+ * Nghiệp vụ nhóm Checkin (Điểm danh qua mã QR).
+ * Liên quan: FR-5.1 (sinh mã QR), FR-5.2 (quét mã QR nhận phòng), FR-5.3 (tự động hủy quá hạn)
+ *
+ * <p>Shell controller stub — triển khai chi tiết sau này.
  */
 public interface CheckinService {
 
-    /**
-     * Check-in nhận phòng bằng mã QR (FR-5.2).
-     *
-     * <p>Cửa sổ check-in (theo tham số đã chốt):
-     * <ul>
-     *   <li>Cho phép quét khi now ∈ [start_time − 15 phút, start_time + 15 phút] (P-EARLY-IN / P-LATE-IN)</li>
-     *   <li>Quét quá sớm (< start−15m): từ chối "Chưa đến giờ check-in"</li>
-     *   <li>Quét quá muộn (> start+15m): auto-release → CANCELLED_AUTO (P-GRACE, FR-5.3)</li>
-     * </ul>
-     *
-     * <p>Optimistic Locking: Booking entity có {@code @Version}. Nếu hai thiết bị quét
-     * cùng một QR đồng thời, chỉ một giao dịch thành công; kia nhận 409 Conflict.
-     *
-     * @param qrCode mã QR quét được (chứa Booking ID)
-     * @return CheckinResponse chứa thông tin lượt đặt đã check-in
-     */
+    // FR-5.1: Lấy mã QR của một lượt đặt
+    CheckinResponse getQrCode(Long bookingId);
+
+    // FR-5.2: Quét mã QR nhận phòng (đã triển khai chi tiết ở BookingCheckinController)
     CheckinResponse checkIn(String qrCode);
 }

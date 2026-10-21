@@ -1,5 +1,6 @@
 package com.smartcampus.backend.service.impl;
 
+import com.smartcampus.backend.dto.request.CheckinRequest;
 import com.smartcampus.backend.dto.response.CheckinResponse;
 import com.smartcampus.backend.entity.Booking;
 import com.smartcampus.backend.entity.Booking.BookingStatus;
@@ -17,20 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 /**
- * Triển khai nghiệp vụ Checkin. Liên quan: FR-5.2 (quét mã QR nhận phòng).
+ * Triển khai nghiệp vụ nhóm Checkin. Liên quan: FR-5.1, FR-5.2, FR-5.3
  *
- * <p>Luồng check-in theo SRS FR-5.2:
- * <ol>
- *   <li>Tìm booking theo mã QR quét được.</li>
- *   <li>Kiểm tra trạng thái phải là CONFIRMED (chưa check-in, chưa hủy).</li>
- *   <li>Kiểm tra cửa sổ thời gian: now ∈ [start−15m, start+15m].
- *       Quét sớm hơn start−15m → từ chối. Quét muộn hơn start+15m → auto-release.</li>
- *   <li>Cập nhật booking thành IN_USE, ghi nhận checkinTime.</li>
- *   <li>Cập nhật phòng sang trạng thái đang sử dụng (BOOKED).</li>
- * </ol>
- *
- * <p>Optimistic Locking (@Version trên Booking) xử lý trường hợp nhiều sinh viên
- * cùng quét QR cùng một lượt đặt tại giờ cao điểm.
+ * <p>checkIn() đã triển khai chi tiết (FR-5.2). getQrCode() (FR-5.1) là shell stub.
  */
 @Service
 @RequiredArgsConstructor
@@ -42,6 +32,11 @@ public class CheckinServiceImpl implements CheckinService {
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
+
+    @Override
+    public CheckinResponse getQrCode(Long bookingId) {
+        throw new UnsupportedOperationException("FR-5.1 chưa triển khai.");
+    }
 
     @Override
     public CheckinResponse checkIn(String qrCode) {
@@ -92,7 +87,7 @@ public class CheckinServiceImpl implements CheckinService {
                     "Lượt đặt này vừa được người khác check-in. Vui lòng quét lại.");
         }
 
-        // Bước 5: Cập nhật phòng sang trạng thái đang sử dụng (Active / BOOKED)
+        // Bước 5: Cập nhật phòng sang trạng thái đang sử dụng (BOOKED)
         Room room = booking.getRoom();
         if (room != null) {
             room.setStatus(Room.RoomStatus.BOOKED);
