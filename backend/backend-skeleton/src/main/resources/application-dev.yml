@@ -1,0 +1,9 @@
+# Profile mặc định khi phát triển local - dùng PostgreSQL
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_campus_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect

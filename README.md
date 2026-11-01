@@ -4,7 +4,7 @@ Khung dự án khởi tạo — chưa có code, chỉ có cấu trúc thư mục
 
 ## Cấu trúc thư mục
 
-- `backend/` — API service (Node.js/NestJS hoặc tương đương), chia module theo 6 nhóm chức năng (FR-1.x → FR-6.x)
+- `backend/` — API service Java Springboot, chia module theo 6 nhóm chức năng (FR-1.x → FR-6.x)
 - `frontend/` — React app, giao diện sinh viên & admin/staff
 - `docs/` — Tài liệu đặc tả (SRS ISO 29148, ERD, API spec)
 - `.github/workflows/` — CI/CD pipeline
