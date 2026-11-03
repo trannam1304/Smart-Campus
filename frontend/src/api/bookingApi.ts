@@ -23,6 +23,7 @@ export interface CreateBookingResponse {
     allowEarlyFrom: string;
     deadlineAt: string;
   };
+  memberQrCodes?: { studentCode: string; qrCodeData: string }[];
 }
 
 export const createBookingApi = async (data: CreateBookingRequest): Promise<ApiEnvelope<CreateBookingResponse>> => {

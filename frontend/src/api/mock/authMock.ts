@@ -50,6 +50,36 @@ const saveStoredAccount = (acc: any) => {
   localStorage.setItem('smart_campus_mock_db', JSON.stringify(list));
 };
 
+export const findMockStudentName = (studentCode: string): string => {
+  const code = (studentCode || '').trim();
+  if (!code) return 'Sinh viên';
+
+  const seedNames: Record<string, string> = {
+    '52100888': 'La Thái Thành',
+    '52100666': 'Nguyễn Hoàng Nam',
+    '52100555': 'Đặng Văn Minh',
+    '52100777': 'Trần Thành Phát',
+    '52100444': 'Lê Quốc Bảo',
+    '52100111': 'Phạm Thị Mai',
+    '52100222': 'Vũ Đức Anh',
+    '52100333': 'Hoàng Kim Chi',
+  };
+
+  if (seedNames[code]) {
+    return seedNames[code];
+  }
+
+  const allAccounts = [...defaultAccounts, ...getStoredAccounts()];
+  const acc = allAccounts.find(
+    (a) => a.studentCode === code || (a.user && a.user.studentCode === code)
+  );
+  if (acc?.user?.fullName) {
+    return acc.user.fullName;
+  }
+
+  return `Sinh viên ${code}`;
+};
+
 export const mockLogin = async (data: LoginRequest): Promise<ApiEnvelope<LoginResponse>> => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {

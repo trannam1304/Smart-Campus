@@ -2,6 +2,7 @@ import React from 'react';
 import { Room } from '../../types/booking';
 import { StatusBadge } from '../ui/StatusBadge';
 import { Users, Tv, Monitor, Wifi, AlertTriangle, Tag, Bookmark, Calendar } from 'lucide-react';
+import { minOccupancy } from '../../utils/bookingValidation';
 
 interface RoomCardProps {
   room: Room;
@@ -27,7 +28,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, onBook, onViewSchedule
                 <Tag className="w-3 h-3 text-blue-500" /> {room.roomType}
               </span>
             </div>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
               {room.building} - {room.floorCode}
             </span>
           </div>
@@ -38,7 +39,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, onBook, onViewSchedule
         <div className="flex items-center gap-4 text-xs font-medium text-slate-600 mb-3 py-2 px-3 bg-slate-50 rounded-xl">
           <div className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-slate-400" />
-            <span>Sức chứa: <strong>{room.capacity} người</strong></span>
+            <span>Sức chứa: <strong>{minOccupancy(room.capacity)} - {room.capacity} người</strong></span>
           </div>
           <div className="flex items-center gap-1.5">
             <Wifi className="w-4 h-4 text-emerald-500" />

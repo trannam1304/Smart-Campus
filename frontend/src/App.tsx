@@ -22,7 +22,7 @@ export const App: React.FC = () => {
       <AuthProvider>
         <BookingProvider>
           <BrowserRouter>
-            <div className="min-h-screen bg-slate-50 flex flex-col pb-16 md:pb-0">
+            <div className="min-h-screen bg-slate-50 flex flex-col pb-16 lg:pb-0">
               <Navbar />
               <main className="flex-1">
                 <AppRoutes />

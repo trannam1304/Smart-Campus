@@ -1,7 +1,7 @@
 import { USE_MOCK } from '../config/env';
 import axiosClient from './axiosClient';
 import { ApiEnvelope, Paginated } from './types';
-import { Room, Booking } from '../types/booking';
+import { Room, Booking, DeviceCategory } from '../types/booking';
 
 export interface GetRoomsParams {
   date?: string;
@@ -9,8 +9,12 @@ export interface GetRoomsParams {
   endTime?: string;
   capacity?: number;
   buildingId?: string;
+  floor?: number; // ĐỀ XUẤT chờ BE: Lọc theo tầng (0: Tầng G, 1: Tầng 1, ..., 5: Tầng 5)
+  roomType?: string; // Lọc theo loại phòng ("Phòng học nhóm", "Phòng thuyết trình", "Phòng video", "Phòng tự học", "Phòng hội nghị")
+  equipment?: DeviceCategory[]; // ĐỀ XUẤT chờ BE: Lọc phòng có ĐỦ các loại thiết bị đã chọn (ở trạng thái GOOD)
   hasProjector?: boolean;
   q?: string;
+  includeMaintenance?: boolean;
 }
 
 export const getRoomsApi = async (params: GetRoomsParams): Promise<ApiEnvelope<Paginated<Room>>> => {

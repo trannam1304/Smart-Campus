@@ -1,4 +1,5 @@
 import { MIN_DURATION_MIN, ALLOWED_DURATIONS, OCC_MIN_RATIO, MIN_PURPOSE_LENGTH, FLOOR_HOURS } from '../config/bookingRules';
+import { getStudentCodeError } from './validators';
 
 export const minOccupancy = (capacity: number): number => {
   return Math.ceil(OCC_MIN_RATIO * capacity);
@@ -74,17 +75,19 @@ export const validateBookingForm = (input: BookingInput, room: RoomInfo): Record
 
   if (room.capacity >= 2) {
     if (input.participantIds.length !== input.participantsCount) {
-        errors.participantIds = "Số lượng MSSV không khớp với số người đăng ký.";
+      errors.participantIds = "Số lượng MSSV không khớp với số người đăng ký.";
     } else {
-        const uniqueIds = new Set(input.participantIds);
-        if (uniqueIds.size !== input.participantIds.length) {
-            errors.participantIds = "MSSV không được trùng lặp.";
-        } else {
-            const invalidId = input.participantIds.find(id => !/^\\d{8}$/.test(id));
-            if (invalidId) {
-                errors.participantIds = "Mỗi MSSV phải gồm đúng 8 chữ số.";
-            }
+      const trimmedIds = input.participantIds.map(id => (id || '').trim());
+      const uniqueIds = new Set(trimmedIds.filter(id => id.length > 0));
+      if (uniqueIds.size !== trimmedIds.filter(id => id.length > 0).length) {
+        errors.participantIds = "MSSV không được trùng lặp.";
+      }
+      trimmedIds.forEach((id, idx) => {
+        const err = getStudentCodeError(id);
+        if (err) {
+          errors[`participantId_${idx}`] = err;
         }
+      });
     }
   }
 

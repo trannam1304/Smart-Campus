@@ -59,14 +59,14 @@ export const ArchitecturalMapPage: React.FC = () => {
                 <button
                   key={f.floorNumber}
                   onClick={() => setSelectedFloorNumber(f.floorNumber)}
-                  className={`flex-1 lg:w-full p-3.5 rounded-2xl border text-left transition-all ${
+                  className={`flex-1 min-w-fit lg:w-full p-3.5 rounded-2xl border text-left transition-all whitespace-nowrap shrink-0 ${
                     isSelected
                       ? 'border-blue-600 bg-blue-600 text-white shadow-md shadow-blue-500/20 font-bold'
                       : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-black">{f.floorCode}</span>
+                    <span className="text-sm font-black whitespace-nowrap">{f.floorCode}</span>
                   </div>
                 </button>
               );

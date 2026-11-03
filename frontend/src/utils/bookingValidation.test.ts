@@ -98,4 +98,44 @@ describe('bookingValidation', () => {
     const result = validateBookingForm(input, room);
     expect(result.purpose).toContain('Mục đích sử dụng phải dài ít nhất 10 ký tự');
   });
+
+  it('validates student codes with regex /^\d{8}$/ after trimming', () => {
+    const room: RoomInfo = { capacity: 4, floor: 1 };
+
+    // '52100666' hợp lệ
+    let res = validateBookingForm({
+      start: '09:00', end: '10:30', purpose: 'Học nhóm thiết kế phần mềm',
+      participantsCount: 2, participantIds: ['52100666', '52100888']
+    }, room);
+    expect(res.participantId_0).toBeUndefined();
+    expect(res.participantId_1).toBeUndefined();
+
+    // ' 52100666 ' (có khoảng trắng đầu cuối) được trim trước khi kiểm tra
+    res = validateBookingForm({
+      start: '09:00', end: '10:30', purpose: 'Học nhóm thiết kế phần mềm',
+      participantsCount: 2, participantIds: [' 52100666 ', '52100888']
+    }, room);
+    expect(res.participantId_0).toBeUndefined();
+
+    // '5210066' lỗi (thiếu: chỉ có 7 chữ số)
+    res = validateBookingForm({
+      start: '09:00', end: '10:30', purpose: 'Học nhóm thiết kế phần mềm',
+      participantsCount: 2, participantIds: ['5210066', '52100888']
+    }, room);
+    expect(res.participantId_0).toBe('MSSV chưa đủ 8 chữ số');
+
+    // '521006666' lỗi (thừa: 9 chữ số)
+    res = validateBookingForm({
+      start: '09:00', end: '10:30', purpose: 'Học nhóm thiết kế phần mềm',
+      participantsCount: 2, participantIds: ['521006666', '52100888']
+    }, room);
+    expect(res.participantId_0).toBe('MSSV vượt quá 8 chữ số');
+
+    // '5210066a' lỗi (chứa chữ cái)
+    res = validateBookingForm({
+      start: '09:00', end: '10:30', purpose: 'Học nhóm thiết kế phần mềm',
+      participantsCount: 2, participantIds: ['5210066a', '52100888']
+    }, room);
+    expect(res.participantId_0).toBe('MSSV chỉ gồm chữ số');
+  });
 });

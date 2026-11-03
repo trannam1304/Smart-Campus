@@ -1,9 +1,12 @@
 export type RoomStatus = 'AVAILABLE' | 'BOOKED' | 'MAINTENANCE' | 'SELF_BOOKED';
 
+export type DeviceCategory = 'PROJECTOR' | 'TV' | 'WHITEBOARD' | 'AC' | 'SOCKET' | 'AUDIO' | 'OTHER';
+
 export interface RoomDevice {
   id: string;
   name: string;
   status: 'GOOD' | 'BROKEN' | 'REPAIRING';
+  category?: DeviceCategory;
 }
 
 export interface Room {
@@ -19,9 +22,19 @@ export interface Room {
   description?: string;
   minOccupancy?: number;
   colorCode?: string;
+  maintenance?: boolean;
+  maintenanceReason?: string;
+  requiresApproval?: boolean;
 }
 
 export type BookingStatus = 'CONFIRMED' | 'IN_USE' | 'CANCELLED_AUTO' | 'COMPLETED' | 'PENDING_APPROVAL' | 'CANCELLED_USER' | 'CANCELLED_ADMIN';
+
+export interface BookingMember {
+  studentCode: string;
+  studentName: string;
+  qrCode: string;
+  checkedInAt?: string;
+}
 
 export interface Booking {
   id: string;
@@ -34,6 +47,7 @@ export interface Booking {
   studentId: string;
   studentName: string;
   studentCode: string;
+  members?: BookingMember[];
   startTime: string; // HH:mm
   endTime: string;   // HH:mm
   date: string;      // YYYY-MM-DD
@@ -42,6 +56,7 @@ export interface Booking {
   qrCode: string;
   status: BookingStatus;
   checkInTime?: string;
+  cancelReason?: string;
   createdAt: string;
 }
 
