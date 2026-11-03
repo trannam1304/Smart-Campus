@@ -16,7 +16,7 @@ Khung dự án khởi tạo — chưa có code, chỉ có cấu trúc thư mục
 cd backend && npm install
 
 # Frontend
-cd frontend && npm install && npm run dev
+cd frontend && npm install
 ```
 
 ## Nhánh Git
