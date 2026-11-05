@@ -44,6 +44,10 @@ public class ApiResponse<T> {
         return new ApiResponse<>(true, 201, "Tạo mới thành công.", data, null, null, null);
     }
 
+    public static <T> ApiResponse<T> created(T data, String message) {
+        return new ApiResponse<>(true, 201, message != null ? message : "Tạo mới thành công.", data, null, null, null);
+    }
+
     public static <T> ApiResponse<List<T>> paginated(List<T> data, Pagination pagination) {
         return new ApiResponse<>(true, 200, "Thao tác thực hiện thành công.", data, null, null, pagination);
     }

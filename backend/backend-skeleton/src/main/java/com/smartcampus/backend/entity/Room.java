@@ -8,12 +8,12 @@ import java.util.List;
 /**
  * Entity Phòng học tự học.
  * Nghiệp vụ liên quan: FR-2.1 (lịch trạng thái), FR-2.2 (sơ đồ tầng), FR-2.3 (bộ lọc), FR-2.4 (mã màu trạng thái)
- * TODO (Nhóm 2/4 - Room & Device): bổ sung field toạ độ SVG, sức chứa, tòa nhà/tầng theo ERD.
  */
 @Getter
 @Setter
 @Entity
 @Table(name = "rooms")
+@AttributeOverride(name = "id", column = @Column(name = "room_id"))
 public class Room extends BaseEntity {
 
     private String roomCode;

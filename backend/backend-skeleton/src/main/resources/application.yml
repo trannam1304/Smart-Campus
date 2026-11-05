@@ -7,11 +7,28 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update   # đổi thànha 'validate' khi lên production
+      ddl-auto: update   # đổi thành 'validate' khi lên production
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+
+  # Cấu hình Spring Mail (FR-6.1, FR-6.2, FR-6.3, NFR-01)
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:smartcampus.notification@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:change_me_app_password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 server:
   port: 8088
@@ -26,6 +43,12 @@ app:
     weekly-quota-hours: 10     # FR-3.3
     auto-release-minutes: 15   # FR-5.3
     checkin-early-limit-minutes: 15   # FR-5.2
+    reminder-lead-minutes: 15  # FR-6.2 (nhắc hẹn trước 15 phút)
+
+  mail:
+    from: ${APP_MAIL_FROM:smartcampus.notification@gmail.com}
+    sender-name: Smart Campus Facility Reservation
+    enabled: ${APP_MAIL_ENABLED:true}
 
 logging:
   level:
