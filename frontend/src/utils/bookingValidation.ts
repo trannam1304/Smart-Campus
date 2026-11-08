@@ -1,5 +1,26 @@
 import { MIN_DURATION_MIN, ALLOWED_DURATIONS, OCC_MIN_RATIO, MIN_PURPOSE_LENGTH, FLOOR_HOURS } from '../config/bookingRules';
 import { getStudentCodeError } from './validators';
+import { Booking } from '../types/booking';
+
+export const isUpcomingBooking = (booking: Booking): boolean => {
+  if (booking.status !== 'CONFIRMED' && booking.status !== 'PENDING_APPROVAL') {
+    return false;
+  }
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  if (booking.date > todayStr) return true;
+  if (booking.date < todayStr) return false;
+
+  // Cùng ngày: so sánh giờ kết thúc với giờ hiện tại
+  const currentHH = String(now.getHours()).padStart(2, '0');
+  const currentMM = String(now.getMinutes()).padStart(2, '0');
+  const currentTimeStr = `${currentHH}:${currentMM}`;
+  return booking.endTime > currentTimeStr;
+};
 
 export const minOccupancy = (capacity: number): number => {
   return Math.ceil(OCC_MIN_RATIO * capacity);

@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import { BookOpen, User, Lock, ArrowRight } from 'lucide-react';
 import { getHomePathByRole } from '../../utils/authUtils';
 import { getErrorMessage } from '../../api/errorMessages';
-import { USE_MOCK } from '../../config/env';
 
 export const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -110,38 +109,6 @@ export const LoginPage: React.FC = () => {
             </Link>
           </p>
         </div>
-
-        {USE_MOCK && (
-          <div className="mt-4 p-4 rounded-xl border border-dashed border-amber-300 bg-amber-50">
-            <h3 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">Chế độ demo (dữ liệu giả lập)</h3>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => { setUsername('52100888'); setPassword('123'); }}
-                className="w-full text-left px-3 py-2 rounded-lg bg-white border border-amber-200 text-xs hover:bg-amber-100 transition-colors"
-              >
-                <div className="font-bold text-slate-700">🎓 Sinh viên</div>
-                <div className="text-slate-500">52100888 / 123</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setUsername('admin@library.edu.vn'); setPassword('admin'); }}
-                className="w-full text-left px-3 py-2 rounded-lg bg-white border border-amber-200 text-xs hover:bg-amber-100 transition-colors"
-              >
-                <div className="font-bold text-slate-700">🛡️ Admin</div>
-                <div className="text-slate-500">admin@library.edu.vn / admin</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setUsername('staff.tang12@lib.tdtu.edu.vn'); setPassword('Admin@2026'); }}
-                className="w-full text-left px-3 py-2 rounded-lg bg-white border border-amber-200 text-xs hover:bg-amber-100 transition-colors"
-              >
-                <div className="font-bold text-slate-700">💼 Staff</div>
-                <div className="text-slate-500">staff.tang12@lib.tdtu.edu.vn / Admin@2026</div>
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

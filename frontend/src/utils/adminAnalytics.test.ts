@@ -6,7 +6,7 @@ import {
   calculateRoomUtilization,
 } from './adminAnalytics';
 import { Booking, FloorData, Room } from '../types/booking';
-import { mockExactRooms } from '../api/mock/mockData';
+import { testRooms as mockExactRooms } from '../test/testFixtures';
 
 describe('adminAnalytics', () => {
   const sampleFloors: FloorData[] = [
