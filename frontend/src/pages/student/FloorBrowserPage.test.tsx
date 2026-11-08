@@ -7,16 +7,39 @@ import { FloorBrowserPage } from './FloorBrowserPage';
 import { AuthProvider } from '../../context/AuthContext';
 import { BookingProvider } from '../../context/BookingContext';
 import { ToastProvider } from '../../hooks/useToast';
-import { mockStore } from '../../api/mock/mockStore';
+import * as roomApi from '../../api/roomApi';
+import { testRooms } from '../../test/testFixtures';
+
+vi.mock('../../api/roomApi', () => ({
+  getRoomsApi: vi.fn(),
+  getRoomBookingsApi: vi.fn(),
+  getFloorMapApi: vi.fn(),
+  getRoomBookingsRangeApi: vi.fn(),
+}));
 
 describe('FloorBrowserPage', () => {
   let scrollIntoViewMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    mockStore.reset();
     vi.clearAllMocks();
     scrollIntoViewMock = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
+
+    vi.mocked(roomApi.getRoomsApi).mockResolvedValue({
+      success: true,
+      code: 200,
+      message: 'OK',
+      data: {
+        items: testRooms,
+        pagination: {
+          page: 1,
+          limit: 100,
+          totalElements: testRooms.length,
+          totalPages: 1,
+        },
+      },
+      timestamp: new Date().toISOString(),
+    });
   });
 
   afterEach(() => {

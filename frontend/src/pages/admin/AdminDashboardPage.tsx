@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
-  RotateCcw,
   Search,
   Plus,
 } from 'lucide-react';
@@ -31,8 +30,7 @@ import {
 import { getRoomsApi } from '../../api/roomApi';
 import { getErrorMessage } from '../../api/errorMessages';
 import { Booking, Room } from '../../types/booking';
-import { USE_MOCK } from '../../config/env';
-import { mockStore, isUpcomingBooking } from '../../api/mock/mockStore';
+import { isUpcomingBooking } from '../../utils/bookingValidation';
 import { useBooking } from '../../context/BookingContext';
 import {
   calculateFloorUtilization,
@@ -137,27 +135,10 @@ export const AdminDashboardPage: React.FC = () => {
   }, [fetchData]);
 
   useEffect(() => {
-    if (USE_MOCK) {
-      const unsubscribe = mockStore.subscribe(() => {
-        fetchData(false);
-      });
-      return unsubscribe;
-    }
-  }, [fetchData]);
-
-  useEffect(() => {
     if (tabParam && !VALID_TABS.includes(tabParam as AdminTab)) {
       navigate('/admin?tab=OVERVIEW', { replace: true });
     }
   }, [tabParam, navigate]);
-
-  // Đặt lại dữ liệu demo về trạng thái ban đầu
-  const handleResetDemoData = () => {
-    mockStore.reset();
-    fetchData();
-    setToastType('success');
-    setToastMessage('Đã khôi phục dữ liệu demo về trạng thái ban đầu!');
-  };
 
   // Bấm nút Bảo trì: luôn mở popup yêu cầu nhập lý do
   const handleOpenMaintenanceModal = (room: Room) => {
@@ -358,17 +339,7 @@ export const AdminDashboardPage: React.FC = () => {
           <p className="text-xs text-slate-500 font-medium">Bảng điều khiển dành riêng cho Quản trị viên (QTV)</p>
         </div>
 
-        {USE_MOCK && (
-          <button
-            type="button"
-            onClick={handleResetDemoData}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-300 transition-colors shadow-sm"
-            title="Đặt lại toàn bộ dữ liệu mẫu ban đầu"
-          >
-            <RotateCcw className="w-4 h-4 text-slate-600" />
-            <span>Đặt lại dữ liệu demo</span>
-          </button>
-        )}
+
       </div>
 
       {isLoading ? (

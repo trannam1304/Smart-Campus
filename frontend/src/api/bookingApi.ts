@@ -1,4 +1,3 @@
-import { USE_MOCK } from '../config/env';
 import axiosClient from './axiosClient';
 import { ApiEnvelope } from './types';
 import { BookingStatus } from '../types/booking';
@@ -27,19 +26,9 @@ export interface CreateBookingResponse {
 }
 
 export const createBookingApi = async (data: CreateBookingRequest): Promise<ApiEnvelope<CreateBookingResponse>> => {
-  if (USE_MOCK) {
-    const { mockCreateBooking } = await import('./mock/bookingMock');
-    return mockCreateBooking(data);
-  }
   return axiosClient.post('/bookings', data);
 };
 
 export const getMyBookingsApi = async (): Promise<ApiEnvelope<any[]>> => {
-  if (USE_MOCK) {
-    const { mockGetMyBookings } = await import('./mock/bookingMock');
-    return mockGetMyBookings();
-  }
-  // TODO: Implement real backend call when endpoint is ready
   return axiosClient.get('/bookings/my-bookings');
 };
-

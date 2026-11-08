@@ -1,4 +1,3 @@
-import { USE_MOCK } from '../config/env';
 import axiosClient from './axiosClient';
 import { ApiEnvelope } from './types';
 import { BookingStatus } from '../types/booking';
@@ -35,19 +34,11 @@ export interface CheckoutResponse {
 export const checkinQrApi = async (
   data: CheckinQrRequest
 ): Promise<ApiEnvelope<CheckinQrResponse>> => {
-  if (USE_MOCK) {
-    const { mockCheckinQr } = await import('./mock/checkinMock');
-    return mockCheckinQr(data);
-  }
   return axiosClient.post('/checkin/qr', data);
 };
 
 export const checkoutApi = async (
   data: CheckoutRequest
 ): Promise<ApiEnvelope<CheckoutResponse>> => {
-  if (USE_MOCK) {
-    const { mockCheckout } = await import('./mock/checkinMock');
-    return mockCheckout(data);
-  }
   return axiosClient.post('/checkin/checkout', data);
 };

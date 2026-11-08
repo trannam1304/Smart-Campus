@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { floorMaps, floorElevators, floorImageSizes, type RoomRect } from './floorMaps';
-import { mockExactRooms } from '../api/mock/mockData';
+import { testRooms as mockExactRooms } from '../test/testFixtures';
 
 // ── helpers ──────────────────────────────────────────────────
 

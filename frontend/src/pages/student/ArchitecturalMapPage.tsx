@@ -5,6 +5,7 @@ import { BookingModal } from '../../components/booking/BookingModal';
 import { Toast } from '../../components/ui/Toast';
 import { QRModal } from '../../components/booking/QRModal';
 import { Room } from '../../types/booking';
+import { campusFloors } from '../../data/floors';
 import { MapPin, Info } from 'lucide-react';
 
 export const ArchitecturalMapPage: React.FC = () => {
@@ -16,7 +17,7 @@ export const ArchitecturalMapPage: React.FC = () => {
   const [defaultDate, setDefaultDate] = useState<string>('');
   const [defaultTime, setDefaultTime] = useState<string>('');
 
-  const selectedFloor = floors.find(f => f.floorNumber === selectedFloorNumber) || floors[0];
+  const selectedFloor = floors?.find(f => f.floorNumber === selectedFloorNumber) || floors?.[0] || campusFloors[0];
 
   const handleBookRoom = (room: Room, dDate?: string, dTime?: string) => {
     setSelectedRoom(room);
@@ -77,8 +78,8 @@ export const ArchitecturalMapPage: React.FC = () => {
         <div className="flex-1 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h2 className="text-xl font-black text-slate-900">{selectedFloor.floorCode}</h2>
-              <p className="text-xs text-slate-500 font-medium">{selectedFloor.description}</p>
+              <h2 className="text-xl font-black text-slate-900">{selectedFloor?.floorCode || 'Sơ đồ tầng'}</h2>
+              <p className="text-xs text-slate-500 font-medium">{selectedFloor?.description || ''}</p>
             </div>
             <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-xl">
               Bấm vào phòng để tương tác
@@ -87,7 +88,7 @@ export const ArchitecturalMapPage: React.FC = () => {
 
           {selectedFloor && (
             <InteractiveFloorPlan
-              floorId={selectedFloor.floorNumber.toString()}
+              floorId={(selectedFloor.floorNumber ?? 0).toString()}
               onBookRoom={handleBookRoom}
             />
           )}

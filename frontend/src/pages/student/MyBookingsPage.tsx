@@ -7,8 +7,6 @@ import { Calendar, Clock, QrCode, MapPin, LogOut, Loader2, AlertCircle } from 'l
 import { checkoutApi } from '../../api/checkinApi';
 import { getMyBookingsApi } from '../../api/bookingApi';
 import { getErrorMessage } from '../../api/errorMessages';
-import { USE_MOCK } from '../../config/env';
-import { mockStore } from '../../api/mock/mockStore';
 import { useAuth } from '../../context/AuthContext';
 
 // Component đếm ngược
@@ -110,16 +108,6 @@ export const MyBookingsPage: React.FC = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, [fetchBookings]);
-
-  // Sync automatically when mockStore changes in mock mode
-  useEffect(() => {
-    if (USE_MOCK) {
-      const unsub = mockStore.subscribe(() => {
-        fetchBookings(true);
-      });
-      return unsub;
-    }
   }, [fetchBookings]);
 
   const handleShowQR = (b: Booking) => {
