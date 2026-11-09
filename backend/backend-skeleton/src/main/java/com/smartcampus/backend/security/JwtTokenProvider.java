@@ -11,6 +11,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -31,17 +32,39 @@ import java.util.function.Function;
 public class JwtTokenProvider {
 
     private final SecretKey key;
-    private final long expirationMs;
+    private final long accessTokenExpirationMs;
+    private final long refreshTokenExpirationMs;
 
     public JwtTokenProvider(
-            @Value("${app.jwt.secret:CHANGE_ME_SECRET_KEY_MIN_32_CHARS}") String secret,
-            @Value("${app.jwt.expiration-ms:86400000}") long expirationMs) {
-        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
-        this.expirationMs = expirationMs;
+            @Value("${app.jwt.secret:c21hcnQtY2FtcHVzLXNlY3JldC1rZXktZm9yLWp3dC1hdXRoZW50aWNhdGlvbi0yMDI2}") String secret,
+            @Value("${app.jwt.access-token-expiration-ms:${app.jwt.expiration-ms:900000}}") long accessTokenExpirationMs,
+            @Value("${app.jwt.refresh-token-expiration-ms:604800000}") long refreshTokenExpirationMs) {
+        byte[] keyBytes;
+        try {
+            keyBytes = Decoders.BASE64.decode(secret);
+        } catch (Exception e) {
+            keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        }
+        if (keyBytes.length < 32) {
+            byte[] padded = new byte[32];
+            System.arraycopy(keyBytes, 0, padded, 0, keyBytes.length);
+            keyBytes = padded;
+        }
+        this.key = Keys.hmacShaKeyFor(keyBytes);
+        this.accessTokenExpirationMs = accessTokenExpirationMs;
+        this.refreshTokenExpirationMs = refreshTokenExpirationMs;
+    }
+
+    public long getAccessTokenExpirationMs() {
+        return accessTokenExpirationMs;
+    }
+
+    public long getRefreshTokenExpirationMs() {
+        return refreshTokenExpirationMs;
     }
 
     /**
-     * Sinh JWT token từ Authentication đã xác thực.
+     * Sinh JWT token từ Authentication đã xác thực (Access Token).
      */
     public String generateToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
@@ -51,7 +74,7 @@ public class JwtTokenProvider {
                 .orElse("ROLE_STUDENT");
 
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + expirationMs);
+        Date expiry = new Date(now.getTime() + accessTokenExpirationMs);
 
         return Jwts.builder()
                 .subject(userPrincipal.getUsername())
@@ -64,11 +87,11 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Sinh JWT token trực tiếp từ đối tượng User (dùng khi đăng ký/xác thực email).
+     * Sinh JWT token trực tiếp từ đối tượng User (Access Token).
      */
     public String generateToken(User user) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + expirationMs);
+        Date expiry = new Date(now.getTime() + accessTokenExpirationMs);
 
         return Jwts.builder()
                 .subject(user.getEmail())

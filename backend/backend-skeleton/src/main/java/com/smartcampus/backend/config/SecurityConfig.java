@@ -1,6 +1,7 @@
 package com.smartcampus.backend.config;
 
 import com.smartcampus.backend.security.JwtAuthFilter;
+import org.springframework.http.HttpMethod;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -82,15 +83,24 @@ public class SecurityConfig {
 
                 // Phân quyền endpoint
                 .authorizeHttpRequests(auth -> auth
+                        // Cho phép truy cập OPTIONS (CORS preflight)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Auth public
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Tra cứu phòng, tòa nhà, sơ đồ tầng (Public Read)
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/rooms", "/api/rooms/**",
+                                "/api/v1/rooms", "/api/v1/rooms/**",
+                                "/api/buildings", "/api/buildings/**",
+                                "/api/v1/buildings", "/api/v1/buildings/**",
+                                "/api/floors/**", "/api/v1/floors/**").permitAll()
                         // Swagger / OpenAPI public
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/webjars/**").permitAll()
                         // Admin only
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN_STAFF")
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "STAFF", "ADMIN_STAFF")
                         // Student & Admin
-                        .requestMatchers("/api/student/**").hasAnyRole("STUDENT", "ADMIN_STAFF")
+                        .requestMatchers("/api/student/**").hasAnyRole("STUDENT", "ADMIN", "STAFF", "ADMIN_STAFF")
                         // Mọi request khác cần authentication
                         .anyRequest().authenticated()
                 )

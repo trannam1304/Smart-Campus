@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update   # đổi thànha 'validate' khi lên production
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -19,8 +19,10 @@ server:
 # Cấu hình JWT (FR-1.2, FR-1.3, NFR-03)
 app:
   jwt:
-    secret: CHANGE_ME_SECRET_KEY_MIN_32_CHARS
-    expiration-ms: 86400000   # 24h
+    secret: c21hcnQtY2FtcHVzLXNlY3JldC1rZXktZm9yLWp3dC1hdXRoZW50aWNhdGlvbi0yMDI2
+    access-token-expiration-ms: 900000        # 15 phút (Access Token ngắn hạn)
+    refresh-token-expiration-ms: 604800000    # 7 ngày (Refresh Token dài hạn)
+    expiration-ms: 900000
 
   booking:
     weekly-quota-hours: 10     # FR-3.3
