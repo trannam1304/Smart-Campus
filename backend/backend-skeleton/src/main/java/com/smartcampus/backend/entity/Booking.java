@@ -23,6 +23,7 @@ import java.util.List;
 @Setter
 @Entity
 @Table(name = "bookings")
+@AttributeOverride(name = "id", column = @Column(name = "booking_id"))
 public class Booking extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

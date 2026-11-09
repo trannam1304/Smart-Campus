@@ -18,9 +18,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping({"/api/v1", "/api"})
 @RequiredArgsConstructor
 @Validated
 public class RoomController {
@@ -30,11 +32,31 @@ public class RoomController {
     @GetMapping("/rooms")
     public ApiResponse<List<ManagedRoomResponse>> getRooms(
             @RequestParam(defaultValue = "1") @Min(1) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
+            @RequestParam(defaultValue = "100") @Min(1) @Max(200) int limit) {
         List<ManagedRoomResponse> rooms = roomService.getRooms(page, limit);
         long totalElements = roomService.countRooms();
         int totalPages = (int) Math.ceil((double) totalElements / limit);
         return ApiResponse.paginated(rooms, new ApiResponse.Pagination(page, limit, totalElements, totalPages));
+    }
+
+    @GetMapping("/floors/{floorId}/map")
+    public ApiResponse<Map<String, Object>> getFloorMap(
+            @PathVariable String floorId,
+            @RequestParam(required = false) String date,
+            @RequestParam(required = false) String time) {
+        List<ManagedRoomResponse> allRooms = roomService.getRooms(1, 100);
+        int floorNum = 0;
+        try {
+            floorNum = Integer.parseInt(floorId.replaceAll("[^0-9]", ""));
+        } catch (Exception ignored) {}
+        final int targetFloor = floorNum;
+        List<ManagedRoomResponse> floorRooms = allRooms.stream()
+                .filter(r -> r.floorNumber() != null && r.floorNumber() == targetFloor)
+                .toList();
+        Map<String, Object> result = new HashMap<>();
+        result.put("floorNumber", targetFloor);
+        result.put("rooms", floorRooms);
+        return ApiResponse.ok(result);
     }
 
     @GetMapping("/rooms/{roomId}")

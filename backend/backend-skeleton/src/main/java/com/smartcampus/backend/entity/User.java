@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(name = "users")
+@AttributeOverride(name = "id", column = @Column(name = "user_id"))
 public class User extends BaseEntity {
 
     @Column(name = "email", unique = true, nullable = false)
@@ -55,6 +56,6 @@ public class User extends BaseEntity {
     @Column(name = "verification_token_expires_at")
     private LocalDateTime verificationTokenExpiresAt; // hạn hiệu lực mã xác thực
 
-    public enum Role { STUDENT, ADMIN_STAFF }
+    public enum Role { STUDENT, ADMIN, STAFF, ADMIN_STAFF }
     public enum AccountStatus { ACTIVE, LOCKED, PENDING }
 }

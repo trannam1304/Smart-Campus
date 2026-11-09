@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(name = "password_reset_otp")
+@AttributeOverride(name = "id", column = @Column(name = "otp_id"))
 public class PasswordResetOtp extends BaseEntity {
 
     @Column(name = "user_id", nullable = false)

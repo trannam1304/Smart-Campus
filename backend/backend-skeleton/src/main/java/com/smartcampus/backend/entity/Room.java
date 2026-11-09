@@ -14,6 +14,7 @@ import java.util.List;
 @Setter
 @Entity
 @Table(name = "rooms")
+@AttributeOverride(name = "id", column = @Column(name = "room_id"))
 public class Room extends BaseEntity {
 
     private String roomCode;

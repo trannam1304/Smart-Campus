@@ -25,10 +25,11 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(identifier)
+                .or(() -> userRepository.findByStudentCode(identifier))
                 .orElseThrow(() ->
-                        new UsernameNotFoundException("Không tìm thấy tài khoản với email: " + email));
+                        new UsernameNotFoundException("Không tìm thấy tài khoản với email hoặc MSSV: " + identifier));
 
         return UserDetailsImpl.build(user);
     }

@@ -5,6 +5,7 @@ import com.smartcampus.backend.dto.response.EquipmentResponse;
 import com.smartcampus.backend.dto.response.ManagedRoomResponse;
 import com.smartcampus.backend.controller.RoomController;
 import com.smartcampus.backend.exception.GlobalExceptionHandler;
+import com.smartcampus.backend.security.JwtAuthFilter;
 import com.smartcampus.backend.service.RoomService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,9 @@ class RoomControllerTest {
 
     @MockBean
     private RoomService roomService;
+
+    @MockBean
+    private JwtAuthFilter jwtAuthFilter;
 
     @Test
     void createRoomReturnsContractEnvelopeAndCreatedStatus() throws Exception {

@@ -4,12 +4,14 @@ import { useAuth } from '../../context/AuthContext';
 import { BookOpen, User, Lock, ArrowRight } from 'lucide-react';
 import { getHomePathByRole } from '../../utils/authUtils';
 import { getErrorMessage } from '../../api/errorMessages';
+import { ForgotPasswordModal } from '../../components/auth/ForgotPasswordModal';
 
 export const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
@@ -75,9 +77,18 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Mật khẩu
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Mật khẩu
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsForgotOpen(true)}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                Quên mật khẩu?
+              </button>
+            </div>
             <div className="relative">
               <input
                 type="password"
@@ -110,6 +121,12 @@ export const LoginPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={isForgotOpen}
+        onClose={() => setIsForgotOpen(false)}
+        initialEmail={username.includes('@') ? username : ''}
+      />
     </div>
   );
 };
