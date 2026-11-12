@@ -76,12 +76,19 @@ public class JwtTokenProvider {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenExpirationMs);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(userPrincipal.getUsername())
                 .claim("role", role)
                 .claim("fullName", userPrincipal.getFullName())
+                .claim("userId", userPrincipal.getId())
                 .issuedAt(now)
-                .expiration(expiry)
+                .expiration(expiry);
+
+        if (userPrincipal.getStudentCode() != null) {
+            builder.claim("studentCode", userPrincipal.getStudentCode());
+        }
+
+        return builder
                 .signWith(key, io.jsonwebtoken.SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -93,12 +100,19 @@ public class JwtTokenProvider {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenExpirationMs);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(user.getEmail())
                 .claim("role", "ROLE_" + user.getRole().name())
                 .claim("fullName", user.getFullName())
+                .claim("userId", user.getId())
                 .issuedAt(now)
-                .expiration(expiry)
+                .expiration(expiry);
+
+        if (user.getStudentCode() != null) {
+            builder.claim("studentCode", user.getStudentCode());
+        }
+
+        return builder
                 .signWith(key, io.jsonwebtoken.SignatureAlgorithm.HS256)
                 .compact();
     }

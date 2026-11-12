@@ -25,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -115,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
         // Gửi email xác thực (dev: chỉ ghi log)
         emailService.sendVerificationEmail(request.getEmail(), verificationToken);
 
-        return new AuthResponse(null, user.getRole().name(), user.getFullName());
+        return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
     }
 
     // ------------------------------------------------------------------
@@ -133,7 +134,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (user.getStatus() == User.AccountStatus.ACTIVE) {
-            return new AuthResponse(null, user.getRole().name(), user.getFullName());
+            return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
         }
 
         user.setStatus(User.AccountStatus.ACTIVE);
@@ -141,7 +142,7 @@ public class AuthServiceImpl implements AuthService {
         user.setVerificationTokenExpiresAt(null);
         userRepository.save(user);
 
-        return new AuthResponse(null, user.getRole().name(), user.getFullName());
+        return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
     }
 
     // ------------------------------------------------------------------
@@ -155,6 +156,12 @@ public class AuthServiceImpl implements AuthService {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getUsername(), request.getPassword()));
+        } catch (org.springframework.security.authentication.DisabledException ex) {
+            throw new ConflictException("Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để xác thực tài khoản.");
+        } catch (org.springframework.security.authentication.LockedException ex) {
+            throw new ConflictException("Tài khoản đang bị khóa. Vui lòng liên hệ Ban quản lý.");
+        } catch (org.springframework.security.authentication.BadCredentialsException ex) {
+            throw new ConflictException("Mật khẩu không chính xác hoặc tài khoản không tồn tại.");
         } catch (Exception ex) {
             throw new ConflictException("Mật khẩu không chính xác hoặc tài khoản không tồn tại.");
         }
@@ -187,7 +194,7 @@ public class AuthServiceImpl implements AuthService {
         refreshToken.setIsRevoked(false);
         refreshTokenRepository.save(refreshToken);
 
-        return new AuthResponse(token, user.getRole().name(), user.getFullName(), refreshTokenStr);
+        return new AuthResponse(token, user.getRole().name(), user.getFullName(), refreshTokenStr, user.getStudentCode(), user.getEmail(), user.getId());
     }
 
     // ------------------------------------------------------------------
@@ -208,8 +215,10 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        return new AuthResponse(null, user.getRole().name(), user.getFullName());
+        return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
     }
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     // ------------------------------------------------------------------
     // FR-1.4: Gửi mã OTP khôi phục mật khẩu
@@ -220,8 +229,8 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Không tìm thấy tài khoản với email này."));
 
-        // Sinh mã OTP 6 chữ số
-        String otpCode = String.valueOf((int) (Math.random() * 900000) + 100000);
+        // Sinh mã OTP 6 chữ số an toàn bảo mật
+        String otpCode = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
 
         PasswordResetOtp otp = new PasswordResetOtp();
         otp.setUserId(user.getId());
@@ -261,6 +270,9 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         otpRepository.markAsUsed(otp.getId());
+
+        // Thu hồi toàn bộ Refresh Tokens để vô hiệu hóa phiên cũ nếu bị lộ mật khẩu
+        refreshTokenRepository.revokeAllByUserId(user.getId());
 
         return "Mật khẩu đã được cập nhật thành công.";
     }
@@ -309,7 +321,7 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.save(newRefreshToken);
 
         String newAccessToken = jwtTokenProvider.generateToken(user);
-        return new AuthResponse(newAccessToken, user.getRole().name(), user.getFullName(), newRefreshTokenStr);
+        return new AuthResponse(newAccessToken, user.getRole().name(), user.getFullName(), newRefreshTokenStr, user.getStudentCode(), user.getEmail(), user.getId());
     }
 
     // ------------------------------------------------------------------
