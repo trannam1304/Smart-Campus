@@ -142,4 +142,33 @@ describe('BookingModal', () => {
       expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
     });
   });
+
+  it('cho phép người đặt tự nhập MSSV nếu tài khoản chưa có sẵn studentCode', () => {
+    const userWithoutStudentCode = {
+      ...mockUser,
+      studentCode: '',
+      email: 'user@example.com',
+    };
+    render(
+      <ToastProvider>
+        <AuthContext.Provider value={{ ...mockAuthContextValue, user: userWithoutStudentCode }}>
+          <BookingModal
+            isOpen={true}
+            onClose={vi.fn()}
+            room={mockRoom40}
+            onSuccess={vi.fn()}
+          />
+        </AuthContext.Provider>
+      </ToastProvider>
+    );
+
+    const inputs = screen.getAllByPlaceholderText(/MSSV người/i);
+    // Ô đầu tiên không bị khóa
+    expect(inputs[0].getAttribute('disabled')).toBeNull();
+    expect(inputs[0].getAttribute('placeholder')).toContain('MSSV người đặt (8 chữ số)');
+
+    // Nhập MSSV người đặt
+    fireEvent.change(inputs[0], { target: { value: '52400217' } });
+    expect((inputs[0] as HTMLInputElement).value).toBe('52400217');
+  });
 });

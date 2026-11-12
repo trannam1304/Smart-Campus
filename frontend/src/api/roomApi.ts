@@ -24,9 +24,11 @@ const mapRoomTypeCodeToType = (code?: string): string => {
     case 'PRESENTATION':
       return 'Phòng thuyết trình';
     case 'VIDEO':
+    case 'VIDEO_ROOM':
       return 'Phòng video';
     case 'STUDY':
     case 'SELF_STUDY':
+    case 'INDIVIDUAL':
       return 'Phòng tự học';
     case 'CONFERENCE':
       return 'Phòng hội nghị';

@@ -79,8 +79,8 @@ axiosClient.interceptors.response.use(
         originalRequest?.url?.includes('/auth/login') ||
         originalRequest?.url?.includes('/auth/register');
 
-      // Tự động Silent Refresh khi gặp 401 Unauthorized
-      if (status === 401 && !originalRequest._retry && !isAuthUrl) {
+      // Tự động Silent Refresh khi gặp 401 Unauthorized hoặc 403 Forbidden (phiên hết hạn)
+      if ((status === 401 || status === 403) && !originalRequest._retry && !isAuthUrl) {
         if (originalRequest?.url?.includes('/auth/refresh')) {
           // Chính API refresh bị 401 (Refresh Token hết hạn hoặc bị thu hồi) -> Bắt buộc logout
           setAccessToken(null);

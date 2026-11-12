@@ -138,4 +138,44 @@ describe('bookingValidation', () => {
     }, room);
     expect(res.participantId_0).toBe('MSSV chỉ gồm chữ số');
   });
+
+  it('should invalidate past date and past start time today', () => {
+    const room: RoomInfo = { capacity: 4, floor: 1 };
+    // Giả sử mốc thời gian kiểm tra là 09:00 ngày 2026-11-10
+    const fakeNow = new Date('2026-11-10T09:00:00');
+
+    // 1. Ngày hôm qua: 2026-11-09 -> lỗi date
+    const pastDateRes = validateBookingForm({
+      date: '2026-11-09',
+      start: '10:00',
+      end: '11:30',
+      purpose: 'Học nhóm thiết kế phần mềm',
+      participantsCount: 2,
+      participantIds: ['52100666', '52100888'],
+    }, room, fakeNow);
+    expect(pastDateRes.date).toBe('Không thể đặt phòng vào ngày trong quá khứ.');
+
+    // 2. Ngày hôm nay nhưng giờ bắt đầu là 08:00 (đã qua lúc 09:00) -> lỗi time
+    const pastTimeRes = validateBookingForm({
+      date: '2026-11-10',
+      start: '08:00',
+      end: '09:30',
+      purpose: 'Học nhóm thiết kế phần mềm',
+      participantsCount: 2,
+      participantIds: ['52100666', '52100888'],
+    }, room, fakeNow);
+    expect(pastTimeRes.time).toBe('Giờ bắt đầu phải sau thời gian hiện tại.');
+
+    // 3. Ngày hôm nay nhưng giờ bắt đầu là 10:00 (hợp lệ trong tương lai) -> không có lỗi time
+    const validFutureRes = validateBookingForm({
+      date: '2026-11-10',
+      start: '10:00',
+      end: '11:30',
+      purpose: 'Học nhóm thiết kế phần mềm',
+      participantsCount: 2,
+      participantIds: ['52100666', '52100888'],
+    }, room, fakeNow);
+    expect(validFutureRes.time).toBeUndefined();
+    expect(validFutureRes.date).toBeUndefined();
+  });
 });

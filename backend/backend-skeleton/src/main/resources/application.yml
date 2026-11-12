@@ -1,10 +1,8 @@
 spring:
   application:
     name: smart-campus-backend
-
   profiles:
-    active: mysql
-
+    active: tidb   # Đổi từ 'mysql' sang 'tidb'
   jpa:
     hibernate:
       ddl-auto: none
