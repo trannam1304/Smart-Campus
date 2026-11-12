@@ -79,6 +79,49 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return slots;
   };
 
+  const getLocalDateString = (d: Date = new Date()) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const isSlotInPast = (selectedDate: string, slotTime: string): boolean => {
+    if (!selectedDate || !slotTime) return false;
+    const todayStr = getLocalDateString();
+    if (selectedDate < todayStr) return true;
+    if (selectedDate > todayStr) return false;
+
+    const now = new Date();
+    const currentHH = String(now.getHours()).padStart(2, '0');
+    const currentMM = String(now.getMinutes()).padStart(2, '0');
+    const currentTimeStr = `${currentHH}:${currentMM}`;
+    return slotTime <= currentTimeStr;
+  };
+
+  const getNextAvailableSlot = (floor: number, selectedDate: string, preferredTime?: string): string => {
+    const slots = generateTimeSlots(floor);
+    if (slots.length === 0) return '07:30';
+
+    const todayStr = getLocalDateString();
+    if (selectedDate > todayStr) {
+      if (preferredTime && slots.includes(preferredTime)) return preferredTime;
+      return slots[0];
+    }
+
+    const now = new Date();
+    const currentHH = String(now.getHours()).padStart(2, '0');
+    const currentMM = String(now.getMinutes()).padStart(2, '0');
+    const currentTimeStr = `${currentHH}:${currentMM}`;
+
+    if (preferredTime && slots.includes(preferredTime) && preferredTime > currentTimeStr) {
+      return preferredTime;
+    }
+
+    const availableSlot = slots.find((s) => s > currentTimeStr);
+    return availableSlot || slots[0];
+  };
+
   const getEndTime = (start: string, dur: number) => {
     if (!start) return '';
     const [h, m] = start.split(':').map(Number);
@@ -87,18 +130,23 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
   };
 
+  const bookerCode = user?.studentCode || (user?.email && user.email.match(/^(\d{8})@/)?.[1]) || '';
+
   useEffect(() => {
     if (isOpen && room && user) {
-      const today = new Date().toISOString().split('T')[0];
-      setDate(defaultDate || today);
-      setStartTime(defaultStartTime || '07:30');
+      const today = getLocalDateString();
+      const initialDate = defaultDate || today;
+      setDate(initialDate);
+
+      const initialStartTime = getNextAvailableSlot(room.floor, initialDate, defaultStartTime);
+      setStartTime(initialStartTime);
       setDuration(90);
 
       const minCap = minOccupancy(room.capacity);
       setPeople(minCap);
 
       setPurpose('');
-      setStudentCodes([user.studentCode || '', ...Array(Math.max(0, minCap - 1)).fill('')]);
+      setStudentCodes([bookerCode, ...Array(Math.max(0, minCap - 1)).fill('')]);
 
       setErrors({});
       setApiError('');
@@ -106,7 +154,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setPasteText('');
       setPasteFeedback(null);
     }
-  }, [isOpen, room, defaultDate, defaultStartTime, user]);
+  }, [isOpen, room, defaultDate, defaultStartTime, user, bookerCode]);
 
   if (!room || !user) return null;
 
@@ -136,7 +184,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const existingInForm = studentCodes.map((s) => s.trim()).filter(Boolean);
 
     const result = parseStudentCodes(pasteText, {
-      bookerCode: user.studentCode || '',
+      bookerCode: bookerCode || user.studentCode || '',
       existingCodes: existingInForm,
       maxSlots: emptyIndices.length,
     });
@@ -174,6 +222,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const validateAndScrollToFirstError = () => {
     const input = {
+      date,
       start: startTime,
       end: endTime,
       purpose,
@@ -251,7 +300,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const filledCount = studentCodes.filter((c) => (c || '').trim().length > 0).length;
 
   return (
@@ -319,12 +368,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             min={today}
             value={date}
             onChange={(e) => {
-              setDate(e.target.value);
+              const newDate = e.target.value;
+              setDate(newDate);
               setErrors((prev) => {
                 const next = { ...prev };
                 delete next.date;
+                delete next.time;
                 return next;
               });
+
+              // Nếu ngày được chọn có giờ bắt đầu nằm trong quá khứ -> tự động chuyển sang slot khả dụng tiếp theo
+              if (isSlotInPast(newDate, startTime)) {
+                const nextSlot = getNextAvailableSlot(room.floor, newDate);
+                setStartTime(nextSlot);
+              }
             }}
             className="datetime-input w-full px-3.5 py-2.5 text-sm"
             required
@@ -351,14 +408,24 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   return next;
                 });
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+              className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white ${
+                errors.time ? 'border-rose-400 bg-rose-50' : 'border-slate-200'
+              }`}
               required
             >
-              {timeSlots.map((slot) => (
-                <option key={slot} value={slot}>
-                  {slot}
-                </option>
-              ))}
+              {timeSlots.map((slot) => {
+                const isPast = isSlotInPast(date, slot);
+                return (
+                  <option
+                    key={slot}
+                    value={slot}
+                    disabled={isPast}
+                    className={isPast ? 'text-slate-400 bg-slate-50' : ''}
+                  >
+                    {slot} {isPast ? '(Đã qua)' : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
           <div>
@@ -437,7 +504,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   // Cập nhật danh sách MSSV tương ứng với số người
                   setStudentCodes((prev) => {
                     const newCodes = [...prev];
-                    newCodes[0] = user?.studentCode || '';
+                    newCodes[0] = bookerCode || newCodes[0] || '';
                     if (newCodes.length < val) {
                       return [...newCodes, ...Array(val - newCodes.length).fill('')];
                     } else {
@@ -542,7 +609,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     inputMode="numeric"
                     placeholder={
                       idx === 0
-                        ? `MSSV người đặt: ${user.studentCode || ''} (khóa)`
+                        ? (bookerCode ? `MSSV người đặt: ${bookerCode} (khóa)` : 'MSSV người đặt (8 chữ số)')
                         : `MSSV người thứ ${idx + 1}`
                     }
                     value={code}
@@ -567,7 +634,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       });
                     }}
                     onBlur={() => {
-                      if (idx > 0) {
+                      if (idx > 0 || !bookerCode) {
                         const err = getStudentCodeError(code);
                         if (err) {
                           setErrors((prev) => ({
@@ -577,9 +644,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         }
                       }
                     }}
-                    disabled={idx === 0}
+                    disabled={idx === 0 && Boolean(bookerCode)}
                     className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                      idx === 0
+                      idx === 0 && Boolean(bookerCode)
                         ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
                         : ''
                     } ${

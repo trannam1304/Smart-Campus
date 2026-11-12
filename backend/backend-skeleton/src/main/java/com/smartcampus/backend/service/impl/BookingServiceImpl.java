@@ -169,6 +169,11 @@ public class BookingServiceImpl implements BookingService {
             throw new ConflictException("Giờ kết thúc phải sau giờ bắt đầu.");
         }
 
+        // Không cho phép đặt phòng trong quá khứ (đệm 1 phút cho độ trễ truyền dữ liệu mạng)
+        if (start.isBefore(LocalDateTime.now(TZ).minusMinutes(1))) {
+            throw new ConflictException("Không thể đặt phòng trong quá khứ. Giờ bắt đầu phải sau thời điểm hiện tại.");
+        }
+
         // Bước khung giờ 30 phút
         if (start.getMinute() % SLOT_MINUTES != 0 || end.getMinute() % SLOT_MINUTES != 0) {
             throw new ConflictException("Vui lòng chọn giờ bắt đầu/kết thúc theo bước 30 phút.");

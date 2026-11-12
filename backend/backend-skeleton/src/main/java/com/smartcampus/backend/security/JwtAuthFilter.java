@@ -60,6 +60,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // Chỉ set authentication nếu SecurityContext chưa có authentication
                 if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     User user = userRepository.findByEmail(userEmail)
+                            .or(() -> userRepository.findByStudentCode(userEmail))
                             .orElse(null);
 
                     if (user != null) {

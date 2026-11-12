@@ -34,11 +34,25 @@ export const loginApi = async (data: LoginRequest): Promise<ApiEnvelope<LoginRes
   const rawRole = (d?.role || d?.user?.role || 'STUDENT').toUpperCase();
   const role: User['role'] = (rawRole === 'ADMIN') ? 'ADMIN' : (rawRole === 'STAFF' || rawRole === 'ADMIN_STAFF' ? 'STAFF' : 'STUDENT');
 
+  // Lấy MSSV từ kết quả backend, hoặc trích xuất từ username (nếu username là MSSV hoặc email chứa MSSV)
+  let studentCode = d?.studentCode || d?.user?.studentCode || '';
+  if (!studentCode) {
+    const rawUsername = (data.username || '').trim();
+    if (/^\d{8}$/.test(rawUsername)) {
+      studentCode = rawUsername;
+    } else {
+      const match = rawUsername.match(/^(\d{8})@/);
+      if (match) {
+        studentCode = match[1];
+      }
+    }
+  }
+
   const user: User = d?.user || {
     id: String(d?.userId || d?.id || '1'),
     fullName: d?.fullName || data.username,
     email: d?.email || (data.username.includes('@') ? data.username : `${data.username}@student.edu.vn`),
-    studentCode: d?.studentCode || (data.username.includes('@') ? '' : data.username),
+    studentCode,
     role,
     libraryTrained: true,
     noShowCount: 0,
@@ -63,7 +77,7 @@ export const registerApi = async (data: RegisterRequest): Promise<ApiEnvelope<Re
     id: String(d?.userId || d?.id || '1'),
     fullName: data.fullName,
     email: data.email,
-    studentCode: data.studentCode,
+    studentCode: d?.studentCode || data.studentCode,
     role: 'STUDENT',
     libraryTrained: true,
     noShowCount: 0,
@@ -86,11 +100,21 @@ export const refreshTokenApi = async (refreshToken?: string): Promise<ApiEnvelop
   const rawRole = (d?.role || d?.user?.role || 'STUDENT').toUpperCase();
   const role: User['role'] = (rawRole === 'ADMIN') ? 'ADMIN' : (rawRole === 'STAFF' || rawRole === 'ADMIN_STAFF' ? 'STAFF' : 'STUDENT');
 
+  let existingStudentCode = '';
+  try {
+    const saved = localStorage.getItem('user');
+    if (saved) {
+      existingStudentCode = JSON.parse(saved).studentCode || '';
+    }
+  } catch {}
+
+  const studentCode = d?.studentCode || d?.user?.studentCode || existingStudentCode || '';
+
   const user: User = d?.user || {
     id: String(d?.userId || d?.id || '1'),
     fullName: d?.fullName || '',
     email: d?.email || '',
-    studentCode: d?.studentCode || '',
+    studentCode,
     role,
     libraryTrained: true,
     noShowCount: 0,
