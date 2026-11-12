@@ -1,35 +1,22 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { FloorData } from '../types/booking';
-import { USE_MOCK } from '../config/env';
-import { mockStore } from '../api/mock/mockStore';
-import { mockInitialFloors } from '../api/mock/mockData';
+import { campusFloors } from '../data/floors';
 
 interface BookingContextType {
   floors: FloorData[];
+  setFloors?: React.Dispatch<React.SetStateAction<FloorData[]>>;
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
-export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [floors, setFloors] = useState<FloorData[]>(() => {
-    if (USE_MOCK) {
-      return mockStore.getState().floors;
-    }
-    return mockInitialFloors;
-  });
-
-  useEffect(() => {
-    if (USE_MOCK) {
-      setFloors(mockStore.getState().floors);
-      const unsubscribe = mockStore.subscribe(() => {
-        setFloors(mockStore.getState().floors);
-      });
-      return unsubscribe;
-    }
-  }, []);
+export const BookingProvider: React.FC<{ children: React.ReactNode; initialFloors?: FloorData[] }> = ({
+  children,
+  initialFloors,
+}) => {
+  const [floors, setFloors] = useState<FloorData[]>(initialFloors || campusFloors);
 
   return (
-    <BookingContext.Provider value={{ floors }}>
+    <BookingContext.Provider value={{ floors, setFloors }}>
       {children}
     </BookingContext.Provider>
   );

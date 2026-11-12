@@ -1,12 +1,9 @@
-import { USE_MOCK } from '../../config/env';
 import React, { useState, useEffect, useRef } from 'react';
 import { Toast } from '../../components/ui/Toast';
 import { CheckCircle2, Camera, AlertCircle, Loader2, QrCode } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { checkinQrApi, CheckinQrResponse } from '../../api/checkinApi';
 import { getErrorMessage } from '../../api/errorMessages';
-import { mockStore, getCurrentMockUser } from '../../api/mock/mockStore';
-import { buildMemberQrCode } from '../../utils/qrCode';
 
 interface ScanResultState {
   status: 'SUCCESS' | 'ERROR';
@@ -161,32 +158,6 @@ export const QRScannerPage: React.FC = () => {
     }
   };
 
-  // Giả lập quét mã QR của người dùng đang đăng nhập từ booking CONFIRMED gần nhất
-  const handleDevSimulateScan = () => {
-    const user = getCurrentMockUser();
-    const currentCode = user?.studentCode || '52100888';
-    const state = mockStore.getState();
-
-    const confirmedBookings = state.bookings
-      .filter(
-        (b) =>
-          b.status === 'CONFIRMED' &&
-          (b.studentCode === currentCode || b.members?.some((m) => m.studentCode === currentCode))
-      )
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    const targetBooking = confirmedBookings[0];
-    if (!targetBooking) {
-      setToastType('error');
-      setToastMessage('Không tìm thấy lượt đặt phòng CONFIRMED nào của bạn để giả lập.');
-      return;
-    }
-
-    const member = targetBooking.members?.find((m) => m.studentCode === currentCode);
-    const code = member?.qrCode || buildMemberQrCode(targetBooking.id, currentCode);
-    processQRCode(code);
-  };
-
   return (
     <div className="max-w-xl mx-auto px-4 py-8 space-y-6">
       <div className="text-center space-y-2">
@@ -279,15 +250,6 @@ export const QRScannerPage: React.FC = () => {
             >
               <Camera className="w-4 h-4" /> Bật Camera Quét Mã
             </button>
-
-            {USE_MOCK && (
-              <button
-                onClick={handleDevSimulateScan}
-                className="mt-4 text-[11px] text-blue-400 hover:text-blue-300 underline"
-              >
-                Giả lập quét mã QR của tôi từ lượt đặt gần nhất (Dev)
-              </button>
-            )}
           </div>
         )}
       </div>

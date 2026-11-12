@@ -13,6 +13,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "incident_reports")
+@AttributeOverride(name = "id", column = @Column(name = "report_id"))
 public class IncidentReport extends BaseEntity {
 
     @ManyToOne

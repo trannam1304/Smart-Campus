@@ -5,12 +5,11 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import { IncidentReportPage } from './IncidentReportPage';
 import { BookingProvider } from '../../context/BookingContext';
-import { mockStore } from '../../api/mock/mockStore';
+import { testFloors } from '../../test/testFixtures';
 import * as incidentApi from '../../api/incidentApi';
 
 describe('IncidentReportPage', () => {
   beforeEach(() => {
-    mockStore.reset();
     vi.clearAllMocks();
   });
 
@@ -18,10 +17,13 @@ describe('IncidentReportPage', () => {
     cleanup();
   });
 
-  const renderComponent = (initialState?: { roomId?: string; roomCode?: string }) => {
+  const renderComponent = (
+    initialState?: { roomId?: string; roomCode?: string },
+    floors = testFloors
+  ) => {
     return render(
       <MemoryRouter initialEntries={[{ pathname: '/incident-report', state: initialState }]}>
-        <BookingProvider>
+        <BookingProvider initialFloors={floors}>
           <IncidentReportPage />
         </BookingProvider>
       </MemoryRouter>
@@ -103,15 +105,14 @@ describe('IncidentReportPage', () => {
   });
 
   it('hiển thị nhãn "(đang hỏng)" đối với thiết bị BROKEN/REPAIRING và vẫn cho phép chọn', async () => {
-    // Cập nhật trạng thái một thiết bị thành BROKEN trong store
-    mockStore.update((s) => {
-      const room = s.rooms.find((r) => r.id === 'r-g01');
-      if (room && room.devices.length > 0) {
-        room.devices[0].status = 'BROKEN';
-      }
-    });
+    // Tạo custom floors có thiết bị BROKEN
+    const brokenFloors = JSON.parse(JSON.stringify(testFloors));
+    const room = brokenFloors[0].rooms.find((r: any) => r.id === 'r-g01');
+    if (room && room.devices.length > 0) {
+      room.devices[0].status = 'BROKEN';
+    }
 
-    renderComponent({ roomId: 'r-g01' });
+    renderComponent({ roomId: 'r-g01' }, brokenFloors);
 
     const deviceSelect = screen.getByLabelText(/Thiết Bị Hỏng Hóc/i) as HTMLSelectElement;
     const brokenOption = Array.from(deviceSelect.options).find((opt) => opt.text.includes('(đang hỏng)'));
@@ -140,7 +141,13 @@ describe('IncidentReportPage', () => {
     const descInput = screen.getByLabelText(/Mô Tả Hiện Trượng Lỗi/i) as HTMLTextAreaElement;
     fireEvent.change(descInput, { target: { value: 'Bàn phím hỏng nút cách' } });
 
-    const createSpy = vi.spyOn(incidentApi, 'createIncidentApi');
+    const createSpy = vi.spyOn(incidentApi, 'createIncidentApi').mockResolvedValue({
+      success: true,
+      code: 201,
+      message: 'Created',
+      data: { incidentId: 'inc-test-1' },
+      timestamp: new Date().toISOString(),
+    });
 
     // 3. Gửi form thành công
     fireEvent.click(submitBtn);

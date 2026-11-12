@@ -10,8 +10,6 @@ import { getRoomsApi } from '../../api/roomApi';
 import { getErrorMessage } from '../../api/errorMessages';
 import { getRoomColor } from '../../utils/roomColors';
 import { minOccupancy } from '../../utils/bookingValidation';
-import { USE_MOCK } from '../../config/env';
-import { mockStore } from '../../api/mock/mockStore';
 
 const EQUIPMENT_OPTIONS: { id: DeviceCategory; label: string }[] = [
   { id: 'PROJECTOR', label: 'Máy chiếu' },
@@ -84,15 +82,6 @@ export const SearchRoomsPage: React.FC = () => {
       fetchRooms();
     }, 400);
     return () => clearTimeout(timer);
-  }, [fetchRooms]);
-
-  useEffect(() => {
-    if (USE_MOCK) {
-      const unsub = mockStore.subscribe(() => {
-        fetchRooms();
-      });
-      return unsub;
-    }
   }, [fetchRooms]);
 
   const handleBookRoom = (room: Room) => {

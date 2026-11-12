@@ -44,4 +44,10 @@ public interface AuthService {
 
     // FR-1.4: Khôi phục mật khẩu bằng OTP (trả về thông điệp)
     String resetPassword(ResetPasswordRequest request);
+
+    // FR-1.2, NFR-03: Cấp mới Access Token bằng Refresh Token (Token Rotation)
+    AuthResponse refreshToken(String refreshTokenStr, String deviceInfo, String ipAddress);
+
+    // FR-1.2, NFR-03: Đăng xuất và thu hồi Refresh Token
+    void logout(String refreshTokenStr);
 }

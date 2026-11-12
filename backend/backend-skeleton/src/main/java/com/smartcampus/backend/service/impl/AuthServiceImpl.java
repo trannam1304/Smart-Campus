@@ -8,10 +8,12 @@ import com.smartcampus.backend.dto.request.ResetPasswordRequest;
 import com.smartcampus.backend.dto.request.VerifyEmailRequest;
 import com.smartcampus.backend.dto.response.AuthResponse;
 import com.smartcampus.backend.entity.PasswordResetOtp;
+import com.smartcampus.backend.entity.RefreshToken;
 import com.smartcampus.backend.entity.User;
 import com.smartcampus.backend.exception.ConflictException;
 import com.smartcampus.backend.exception.ResourceNotFoundException;
 import com.smartcampus.backend.repository.PasswordResetOtpRepository;
+import com.smartcampus.backend.repository.RefreshTokenRepository;
 import com.smartcampus.backend.repository.UserRepository;
 import com.smartcampus.backend.security.JwtTokenProvider;
 import com.smartcampus.backend.service.AuthService;
@@ -53,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordResetOtpRepository otpRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -60,12 +63,14 @@ public class AuthServiceImpl implements AuthService {
 
     public AuthServiceImpl(UserRepository userRepository,
                            PasswordResetOtpRepository otpRepository,
+                           RefreshTokenRepository refreshTokenRepository,
                            JwtTokenProvider jwtTokenProvider,
                            PasswordEncoder passwordEncoder,
                            AuthenticationManager authenticationManager,
                            EmailService emailService) {
         this.userRepository = userRepository;
         this.otpRepository = otpRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -170,10 +175,19 @@ public class AuthServiceImpl implements AuthService {
             throw new ConflictException("Tài khoản đang bị khóa. Vui lòng liên hệ Ban quản lý.");
         }
 
-        // Sinh JWT token
+        // Sinh Access Token (15 phút)
         String token = jwtTokenProvider.generateToken(authentication);
 
-        return new AuthResponse(token, user.getRole().name(), user.getFullName());
+        // Sinh Refresh Token (7 ngày) và lưu vào bảng refresh_tokens
+        String refreshTokenStr = UUID.randomUUID().toString();
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setUserId(user.getId());
+        refreshToken.setTokenHash(refreshTokenStr);
+        refreshToken.setExpiresAt(LocalDateTime.now().plusDays(7));
+        refreshToken.setIsRevoked(false);
+        refreshTokenRepository.save(refreshToken);
+
+        return new AuthResponse(token, user.getRole().name(), user.getFullName(), refreshTokenStr);
     }
 
     // ------------------------------------------------------------------
@@ -249,5 +263,62 @@ public class AuthServiceImpl implements AuthService {
         otpRepository.markAsUsed(otp.getId());
 
         return "Mật khẩu đã được cập nhật thành công.";
+    }
+
+    // ------------------------------------------------------------------
+    // FR-1.2, NFR-03: Cấp mới Access Token bằng Refresh Token (Token Rotation)
+    // ------------------------------------------------------------------
+    @Override
+    public AuthResponse refreshToken(String refreshTokenStr, String deviceInfo, String ipAddress) {
+        if (refreshTokenStr == null || refreshTokenStr.isBlank()) {
+            throw new ConflictException("Refresh Token không hợp lệ.");
+        }
+
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(refreshTokenStr)
+                .orElseThrow(() -> new ResourceNotFoundException("Refresh Token không tồn tại hoặc đã hết hạn."));
+
+        // Token Reuse Detection: nếu token đã bị revoked mà vẫn gửi lên -> có dấu hiệu đánh cắp token
+        if (Boolean.TRUE.equals(refreshToken.getIsRevoked())) {
+            refreshTokenRepository.revokeAllByUserId(refreshToken.getUserId());
+            throw new ConflictException("Phát hiện phiên truy cập đáng ngờ. Toàn bộ phiên đăng nhập đã bị hủy để bảo vệ tài khoản.");
+        }
+
+        if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ConflictException("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        }
+
+        User user = userRepository.findById(refreshToken.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản người dùng."));
+
+        if (user.getStatus() != User.AccountStatus.ACTIVE) {
+            throw new ConflictException("Tài khoản chưa được kích hoạt hoặc đã bị khóa.");
+        }
+
+        // Token Rotation: thu hồi token cũ, phát hành token mới
+        refreshToken.setIsRevoked(true);
+        refreshTokenRepository.save(refreshToken);
+
+        String newRefreshTokenStr = UUID.randomUUID().toString();
+        RefreshToken newRefreshToken = new RefreshToken();
+        newRefreshToken.setUserId(user.getId());
+        newRefreshToken.setTokenHash(newRefreshTokenStr);
+        newRefreshToken.setExpiresAt(LocalDateTime.now().plusDays(7));
+        newRefreshToken.setIsRevoked(false);
+        newRefreshToken.setDeviceInfo(deviceInfo);
+        newRefreshToken.setIpAddress(ipAddress);
+        refreshTokenRepository.save(newRefreshToken);
+
+        String newAccessToken = jwtTokenProvider.generateToken(user);
+        return new AuthResponse(newAccessToken, user.getRole().name(), user.getFullName(), newRefreshTokenStr);
+    }
+
+    // ------------------------------------------------------------------
+    // FR-1.2, NFR-03: Đăng xuất và thu hồi Refresh Token
+    // ------------------------------------------------------------------
+    @Override
+    public void logout(String refreshTokenStr) {
+        if (refreshTokenStr != null && !refreshTokenStr.isBlank()) {
+            refreshTokenRepository.revokeByTokenHash(refreshTokenStr);
+        }
     }
 }

@@ -1,5 +1,3 @@
-import { USE_MOCK } from '../config/env';
-
 export const errorMap: Record<string, string> = {
   ERR_LIBRARY_NOT_TRAINED: 'Bạn chưa hoàn thành khóa tập huấn thư viện.',
   ERR_MIN_OCCUPANCY: 'Số lượng người đăng ký không đạt yêu cầu tối thiểu của phòng.',
@@ -12,13 +10,6 @@ export const errorMap: Record<string, string> = {
 };
 
 export const getErrorMessage = (err: unknown): string => {
-  const appendHint = (msg: string) => {
-    if (import.meta.env.DEV && !USE_MOCK) {
-      return msg + " (Gợi ý: Không kết nối được máy chủ API. Nếu chưa có backend, đặt VITE_USE_MOCK=true trong .env rồi khởi động lại npm run dev.)";
-    }
-    return msg;
-  };
-
   if (typeof err === 'object' && err !== null) {
     const error = err as any;
     
@@ -32,7 +23,7 @@ export const getErrorMessage = (err: unknown): string => {
     }
 
     if (error.status >= 500) {
-      return appendHint('Lỗi máy chủ, vui lòng thử lại sau.');
+      return 'Lỗi máy chủ (500), vui lòng thử lại sau.';
     }
 
     if (error.message) {
@@ -41,8 +32,12 @@ export const getErrorMessage = (err: unknown): string => {
   }
 
   if (err instanceof Error) {
-    if (err.message.includes('Network Error') || err.message.includes('network')) return appendHint('Lỗi kết nối mạng, vui lòng kiểm tra lại.');
-    if (err.message.includes('timeout')) return appendHint('Hết thời gian chờ kết nối, vui lòng thử lại.');
+    if (err.message.includes('Network Error') || err.message.includes('network')) {
+      return 'Lỗi kết nối mạng hoặc không thể kết nối đến máy chủ Backend (Port 8088). Vui lòng kiểm tra lại dịch vụ Backend.';
+    }
+    if (err.message.includes('timeout')) {
+      return 'Hết thời gian chờ kết nối, vui lòng thử lại.';
+    }
     return err.message;
   }
 

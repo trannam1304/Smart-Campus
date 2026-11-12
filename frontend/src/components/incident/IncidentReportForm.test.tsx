@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vite
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { IncidentReportForm } from './IncidentReportForm';
 import { BookingProvider } from '../../context/BookingContext';
-import { mockStore } from '../../api/mock/mockStore';
+import { testFloors } from '../../test/testFixtures';
 import * as incidentApi from '../../api/incidentApi';
 
 describe('IncidentReportForm', () => {
@@ -12,7 +12,6 @@ describe('IncidentReportForm', () => {
   let revokeObjectURLMock: Mock<[string], void>;
 
   beforeEach(() => {
-    mockStore.reset();
     vi.clearAllMocks();
 
     createObjectURLMock = vi.fn((_obj: Blob | MediaSource) => 'blob:mocked-image-preview-url');
@@ -27,7 +26,7 @@ describe('IncidentReportForm', () => {
 
   const renderForm = (props: React.ComponentProps<typeof IncidentReportForm> = {}) => {
     return render(
-      <BookingProvider>
+      <BookingProvider initialFloors={testFloors}>
         <IncidentReportForm {...props} />
       </BookingProvider>
     );

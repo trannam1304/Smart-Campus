@@ -6,8 +6,6 @@ import { floorMaps, floorImageSizes, floorElevators, FLOOR_VIEW_WIDTH, FLOOR_VIE
 import { getRoomColor } from '../../utils/roomColors';
 import { getFloorMapApi } from '../../api/roomApi';
 import { minOccupancy } from '../../utils/bookingValidation';
-import { USE_MOCK } from '../../config/env';
-import { mockStore } from '../../api/mock/mockStore';
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -31,9 +29,10 @@ const getRoundedDateAndTime = () => {
 };
 
 /** Extract filename from a path like `/assets/floors/image3.png` */
-const extractFilename = (path: string): string => {
+const extractFilename = (path?: string): string => {
+  if (!path) return 'image3.png';
   const parts = path.split('/');
-  return parts[parts.length - 1];
+  return parts[parts.length - 1] || 'image3.png';
 };
 
 /** Derive floor number from an image filename for floor-to-room mapping */
@@ -159,15 +158,6 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
   }, [fetchData]);
 
   useEffect(() => {
-    if (USE_MOCK) {
-      const unsub = mockStore.subscribe(() => {
-        fetchData(true);
-      });
-      return unsub;
-    }
-  }, [fetchData]);
-
-  useEffect(() => {
     const interval = setInterval(() => {
       fetchData(true);
     }, 30000); // 30s auto refresh
@@ -176,14 +166,14 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
 
   // Warn about mismatches when floor data loads
   useEffect(() => {
-    if (floor) {
+    if (floor && Array.isArray(floor.rooms)) {
       warnMismatches(floor.rooms, floor.floorNumber);
     }
   }, [floor]);
 
   // Seed drafts for calibration mode
   useEffect(() => {
-    if (!isCalibrateMode || !floor) return;
+    if (!isCalibrateMode || !floor || !Array.isArray(floor.rooms)) return;
     const seeds: DraftRect[] = floor.rooms.map((r) => {
       const rect = floorMaps[r.roomCode];
       if (rect) {
@@ -209,7 +199,9 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
 
   /* ---------- computed ---------- */
 
-  const imgFile = floor ? extractFilename(floor.mapImage) : 'image3.png';
+  const imgFile = floor?.mapImage
+    ? extractFilename(floor.mapImage)
+    : floorNumberToImage[floor?.floorNumber ?? 0] || 'image3.png';
   const naturalSize = floorImageSizes[imgFile] ?? { w: FLOOR_VIEW_WIDTH, h: FLOOR_VIEW_HEIGHT };
   const imgW = naturalSize.w;
   const imgH = naturalSize.h;
@@ -427,8 +419,8 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
           onPointerUp={onPointerUp}
         >
           <img
-            src={floor.mapImage}
-            alt={`Sơ đồ bản vẽ ${floor.floorCode}`}
+            src={floor?.mapImage || `/assets/floors/${imgFile}`}
+            alt={`Sơ đồ bản vẽ ${floor?.floorCode || ''}`}
             className="block w-full h-auto select-none"
             draggable={false}
           />
@@ -736,13 +728,13 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
                 TÒA L • THƯ VIỆN
               </text>
               <text x="55" y="24" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#64748b">
-                {floor.floorCode.toUpperCase()}
+                {floor?.floorCode ? floor.floorCode.toUpperCase() : `TẦNG ${floor?.floorNumber ?? ''}`}
               </text>
             </g>
           </g>
 
           {/* Rooms */}
-          {floor.rooms.map((room) => {
+          {(floor?.rooms || []).map((room) => {
             const rect = floorMaps[room.roomCode];
             if (!rect) return null;
             const colors = getRoomColor(room.status, room.colorCode);
@@ -836,7 +828,7 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
               <div className="flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-blue-600" />
                 <span>
-                  Giờ mở cửa: {floor.floorNumber <= 2 ? '07:30 - 20:00' : '07:30 - 17:00'}
+                  Giờ mở cửa: {(floor?.floorNumber ?? 0) <= 2 ? '07:30 - 20:00' : '07:30 - 17:00'}
                 </span>
               </div>
             </div>

@@ -2,6 +2,6 @@
 -- Thêm cột version cho Optimistic Locking trên bảng bookings (FR-3.2)
 
 ALTER TABLE bookings
-    ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 0;
+    ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
 
 -- =====================================================================

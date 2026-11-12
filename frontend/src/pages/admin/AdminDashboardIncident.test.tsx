@@ -5,7 +5,7 @@ import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 import { AdminDashboardPage } from './AdminDashboardPage';
 import { BookingProvider } from '../../context/BookingContext';
-import { mockStore } from '../../api/mock/mockStore';
+import { testRooms, testFloors } from '../../test/testFixtures';
 import * as adminApi from '../../api/adminApi';
 import * as roomApi from '../../api/roomApi';
 import * as incidentApi from '../../api/incidentApi';
@@ -45,7 +45,6 @@ describe('AdminDashboardPage - Tab INCIDENTS', () => {
   ];
 
   beforeEach(() => {
-    mockStore.reset();
     vi.clearAllMocks();
 
     vi.mocked(adminApi.getAdminDashboardDataApi).mockResolvedValue({
@@ -70,11 +69,11 @@ describe('AdminDashboardPage - Tab INCIDENTS', () => {
       code: 200,
       message: 'OK',
       data: {
-        items: mockStore.getState().rooms,
+        items: testRooms,
         pagination: {
           page: 1,
           limit: 10,
-          totalElements: mockStore.getState().rooms.length,
+          totalElements: testRooms.length,
           totalPages: 1,
         },
       },
@@ -89,7 +88,7 @@ describe('AdminDashboardPage - Tab INCIDENTS', () => {
   const renderDashboard = () => {
     return render(
       <MemoryRouter initialEntries={['/admin?tab=INCIDENTS']}>
-        <BookingProvider>
+        <BookingProvider initialFloors={testFloors}>
           <AdminDashboardPage />
         </BookingProvider>
       </MemoryRouter>
