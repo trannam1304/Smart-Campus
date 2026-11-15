@@ -43,6 +43,18 @@ class RoomControllerTest {
     private RoomService roomService;
 
     @MockBean
+    private com.smartcampus.backend.service.BookingService bookingService;
+
+    @MockBean
+    private com.smartcampus.backend.repository.BookingRepository bookingRepository;
+
+    @MockBean
+    private com.smartcampus.backend.repository.UserRepository userRepository;
+
+    @MockBean
+    private com.smartcampus.backend.service.CheckinService checkinService;
+
+    @MockBean
     private JwtAuthFilter jwtAuthFilter;
 
     @Test
