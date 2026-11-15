@@ -68,7 +68,7 @@ public class RoomController {
     @GetMapping("/rooms")
     public ApiResponse<List<ManagedRoomResponse>> getRooms(
             @RequestParam(defaultValue = "1") @Min(1) int page,
-            @RequestParam(defaultValue = "100") @Min(1) @Max(200) int limit) {
+            @RequestParam(defaultValue = "10") @Min(1) @Max(200) int limit) {
         List<ManagedRoomResponse> rooms = roomService.getRooms(page, limit);
         long totalElements = roomService.countRooms();
         int totalPages = (int) Math.ceil((double) totalElements / limit);
