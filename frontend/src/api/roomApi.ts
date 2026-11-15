@@ -87,7 +87,8 @@ export const normalizeRoom = (r: any): Room => {
 };
 
 export const getRoomsApi = async (params: GetRoomsParams): Promise<ApiEnvelope<Paginated<Room>>> => {
-  const res: any = await axiosClient.get('/rooms', { params });
+  const queryParams = { limit: 100, ...params };
+  const res: any = await axiosClient.get('/rooms', { params: queryParams });
   let rawList: any[] = [];
   if (Array.isArray(res.data)) {
     rawList = res.data;
