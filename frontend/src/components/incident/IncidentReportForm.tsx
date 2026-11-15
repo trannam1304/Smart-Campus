@@ -54,6 +54,7 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
 
   // ─── State ảnh đính kèm ─────────────────────────────────────────────────────
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [base64Data, setBase64Data] = useState<string>('');
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [imageError, setImageError] = useState<string | null>(null);
 
@@ -94,6 +95,7 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
     }
     setPreviewUrl('');
     setImageFile(null);
+    setBase64Data('');
     setImageError(null);
     if (cameraInputRef.current) cameraInputRef.current.value = '';
     if (galleryInputRef.current) galleryInputRef.current.value = '';
@@ -120,6 +122,15 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
     setPreviewUrl(url);
     setImageFile(file);
     setImageError(null);
+
+    // Chuyển đổi song song sang Base64 làm fallback an toàn
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setBase64Data(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,11 +157,14 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
 
     setIsLoading(true);
     try {
+      const currentRoom = selectedRoom;
       const res = await createIncidentApi({
-        roomId: selectedRoomId,
+        roomId: currentRoom ? currentRoom.roomCode : selectedRoomId,
+        roomCode: currentRoom ? currentRoom.roomCode : undefined,
         equipmentId: selectedDeviceId,
         description: description.trim(),
         imageFile: imageFile || undefined,
+        imageUrl: base64Data || undefined,
       });
 
       if (res.success) {

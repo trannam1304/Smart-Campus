@@ -87,7 +87,19 @@ export const QRModal: React.FC<QRModalProps> = ({ isOpen, onClose, booking }) =>
         </button>
       }
     >
-      {!isMember ? (
+      {booking.status === 'PENDING_APPROVAL' || booking.bookingStatus === 'PENDING_APPROVAL' ? (
+        <div className="py-6 px-4 text-center space-y-3">
+          <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+            <Clock className="w-6 h-6" />
+          </div>
+          <p className="text-sm font-bold text-amber-700">
+            Đơn đặt phòng đang chờ phê duyệt
+          </p>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+            Lịch đặt phòng cần được Quản trị viên/Quản lý phê duyệt. Mã QR nhận phòng sẽ được cấp ngay sau khi đơn được duyệt.
+          </p>
+        </div>
+      ) : !isMember ? (
         <div className="py-6 px-4 text-center space-y-3">
           <div className="w-12 h-12 mx-auto rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
             <AlertCircle className="w-6 h-6" />

@@ -27,3 +27,9 @@ Thumbs.db
 
 # Database
 *.sqlite
+
+# Uploads and temporary directories
+uploads/
+**/uploads/**
+frontend_chua_ghep/
+

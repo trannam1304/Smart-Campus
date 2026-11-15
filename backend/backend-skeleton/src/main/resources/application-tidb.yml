@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/smart_campus_db?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&useServerPrepStmts=true&cachePrepStmts=true&prepStmtCacheSqlLimit=2048&prepStmtCacheSize=256&rewriteBatchedStatements=true
+    url: jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/smart_campus_db?useSSL=true&requireSSL=true&enabledTLSProtocols=TLSv1.2,TLSv1.3&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&useServerPrepStmts=false&maxAllowedPacket=67108864&rewriteBatchedStatements=true
     username: ${TIDB_USERNAME:gWJcfxHWkQ8ShBh.root}
     password: ${TIDB_PASSWORD:benE9XWvcfxTK5Wv}
     driver-class-name: com.mysql.cj.jdbc.Driver

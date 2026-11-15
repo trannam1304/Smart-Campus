@@ -15,4 +15,8 @@ public class CheckinResponse {
     private String status; // IN_USE
     private LocalDateTime checkinTime;
     private String message;
+    private String studentCode;
+    private String studentName;
+    private Integer checkedInCount;
+    private Integer totalMembers;
 }
