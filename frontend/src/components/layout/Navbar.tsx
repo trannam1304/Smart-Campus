@@ -1,22 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getHomePathByRole } from '../../utils/authUtils';
-import { BookOpen, LogOut } from 'lucide-react';
+import { BookOpen, LogOut, AlertTriangle } from 'lucide-react';
 import { studentNavItems, adminNavItems } from '../../config/navItems';
+import { getStudentWarningsApi, StudentWarningSummary } from '../../api/violationApi';
+import { StudentWarningModal } from '../student/StudentWarningModal';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
+  const [warningSummary, setWarningSummary] = useState<StudentWarningSummary | null>(null);
+  const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+
+  const isAdminOrStaff = user?.role === 'ADMIN' || user?.role === 'STAFF';
+  const currentTab = new URLSearchParams(location.search).get('tab') || 'OVERVIEW';
+
+  const fetchStudentWarnings = useCallback(async () => {
+    if (!user || isAdminOrStaff) return;
+    try {
+      const res = await getStudentWarningsApi();
+      if (res.success && res.data) {
+        setWarningSummary(res.data);
+      }
+    } catch {
+      // Bỏ qua lỗi âm thầm khi chưa có hoặc phiên chưa sẵn sàng
+    }
+  }, [user, isAdminOrStaff]);
+
+  useEffect(() => {
+    fetchStudentWarnings();
+  }, [fetchStudentWarnings]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
-
-  const isAdminOrStaff = user?.role === 'ADMIN' || user?.role === 'STAFF';
-  const currentTab = new URLSearchParams(location.search).get('tab') || 'OVERVIEW';
 
   const checkIsActive = (path: string, id?: string) => {
     if (isAdminOrStaff) {
@@ -91,10 +112,36 @@ export const Navbar: React.FC = () => {
                 })}
           </nav>
 
-          {/* Thông tin người dùng & Đăng xuất */}
+          {/* Thông tin người dùng, Cảnh báo vi phạm & Đăng xuất */}
           <div className="flex items-center gap-3 shrink-0">
             {user ? (
               <div className="flex items-center gap-2">
+                {/* NÚT CẢNH BÁO VI PHẠM KẾ BÊN LOGO TÀI KHOẢN SINH VIÊN */}
+                {warningSummary && (warningSummary.warningCount > 0 || warningSummary.isLocked) && (
+                  <button
+                    type="button"
+                    onClick={() => setIsWarningModalOpen(true)}
+                    title="Bạn có cảnh báo vi phạm. Nhấn để xem lý do và gửi khiếu nại."
+                    className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                      warningSummary.isLocked
+                        ? 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 shadow-sm shadow-rose-200'
+                        : 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100 shadow-sm shadow-amber-200'
+                    }`}
+                  >
+                    <AlertTriangle className={`w-4 h-4 shrink-0 ${warningSummary.isLocked ? 'text-rose-600' : 'text-amber-600 animate-bounce'}`} />
+                    <span className="hidden xs:inline sm:inline">
+                      {warningSummary.isLocked ? 'Tài khoản bị khóa' : `Cảnh báo (${warningSummary.warningCount})`}
+                    </span>
+                    <span className="xs:hidden sm:hidden">
+                      {warningSummary.warningCount}
+                    </span>
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                    </span>
+                  </button>
+                )}
+
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200">
                   <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shrink-0">
                     {user.fullName.charAt(0)}
@@ -127,6 +174,14 @@ export const Navbar: React.FC = () => {
 
         </div>
       </div>
+
+      {/* Modal Chi Tiết Cảnh Báo & Khiếu Nại dành cho Sinh Viên */}
+      <StudentWarningModal
+        isOpen={isWarningModalOpen}
+        onClose={() => setIsWarningModalOpen(false)}
+        summary={warningSummary}
+        onRefresh={fetchStudentWarnings}
+      />
     </header>
   );
 };

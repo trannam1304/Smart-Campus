@@ -735,7 +735,7 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
 
           {/* Rooms */}
           {(floor?.rooms || []).map((room) => {
-            const rect = floorMaps[room.roomCode];
+            const rect = floorMaps[room.roomCode] || floorMaps[room.roomCode.replace('-', '.')];
             if (!rect) return null;
             const colors = getRoomColor(room.status, room.colorCode);
             const isSelected = hoveredRoom?.id === room.id;
@@ -822,7 +822,9 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
                 <Monitor className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
                 <span className="flex-1">
                   Thiết bị:{' '}
-                  {hoveredRoom.devices.map((d) => `${d.name} (${d.status})`).join(', ')}
+                  {hoveredRoom.devices && hoveredRoom.devices.length > 0
+                    ? hoveredRoom.devices.map((d) => (d.status === 'GOOD' ? d.name : `${d.name} (Hỏng)`)).join(', ')
+                    : 'Không có'}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -861,6 +863,26 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
                   >
                     <Calendar className="w-3.5 h-3.5" />
                     <span>Xem lịch bận để chọn giờ khác</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {hoveredRoom.status === 'SELF_BOOKED' && (
+              <div className="space-y-2">
+                <div className="text-[10px] text-blue-700 font-bold bg-blue-50 p-2 rounded-lg border border-blue-200 text-center">
+                  Bạn đã đặt phòng này trong khung giờ này
+                </div>
+                {onViewSchedule && (
+                  <button
+                    onClick={() => {
+                      setHoveredRoom(null);
+                      onViewSchedule(hoveredRoom);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-blue-100 hover:bg-blue-200 text-blue-800 flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Xem chi tiết lịch đặt</span>
                   </button>
                 )}
               </div>

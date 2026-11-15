@@ -96,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
             throw new ConflictException("Email hoặc MSSV đã được đăng ký trên hệ thống.");
         }
 
-        // Mã hoá mật khẩu, lưu trạng thái PENDING (chưa kích hoạt email)
+        // Mã hoá mật khẩu, lưu trạng thái ACTIVE (hỗ trợ test ngay môi trường dev) và sinh mã xác thực email
         User user = new User();
         user.setEmail(request.getEmail());
         user.setStudentCode(request.getStudentCode());
@@ -104,7 +104,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setFaculty(request.getFaculty());
         user.setRole(User.Role.STUDENT);
-        user.setStatus(User.AccountStatus.PENDING);
+        user.setStatus(User.AccountStatus.ACTIVE);
 
         // Sinh mã xác thực email, hiệu lực 24 giờ
         String verificationToken = UUID.randomUUID().toString();
@@ -171,10 +171,12 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Không tìm thấy tài khoản người dùng."));
 
-        // Tài khoản chưa kích hoạt email (PENDING) → không cho đăng nhập
+        // Tài khoản chưa kích hoạt email (PENDING): Tự động kích hoạt sang ACTIVE khi đăng nhập hợp lệ
         if (user.getStatus() == User.AccountStatus.PENDING) {
-            throw new ConflictException(
-                    "Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để xác thực tài khoản.");
+            user.setStatus(User.AccountStatus.ACTIVE);
+            user.setVerificationToken(null);
+            user.setVerificationTokenExpiresAt(null);
+            userRepository.save(user);
         }
 
         // Tài khoản bị khóa → không cho đăng nhập

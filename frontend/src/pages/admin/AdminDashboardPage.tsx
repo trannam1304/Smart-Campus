@@ -19,6 +19,10 @@ import {
   AlertCircle,
   Search,
   Plus,
+  Filter,
+  Calendar,
+  RotateCcw,
+  RefreshCw,
 } from 'lucide-react';
 import {
   getAdminDashboardDataApi,
@@ -88,6 +92,10 @@ export const AdminDashboardPage: React.FC = () => {
   // States for incident management
   const [isCreateIncidentModalOpen, setIsCreateIncidentModalOpen] = useState(false);
   const [selectedIncidentImage, setSelectedIncidentImage] = useState<{ url: string; title: string } | null>(null);
+  const [incidentStatusFilter, setIncidentStatusFilter] = useState<'ALL' | 'OPEN' | 'RESOLVED'>('ALL');
+  const [incidentTimeFilter, setIncidentTimeFilter] = useState<'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM'>('ALL');
+  const [incidentCustomDate, setIncidentCustomDate] = useState<string>('');
+  const [incidentSearchQuery, setIncidentSearchQuery] = useState<string>('');
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
@@ -327,6 +335,77 @@ export const AdminDashboardPage: React.FC = () => {
     () => calculateRoomUtilization(allRooms, bookings, selectedDate),
     [allRooms, bookings, selectedDate]
   );
+
+  const incidentStats = useMemo(() => {
+    const total = incidents.length;
+    const open = incidents.filter((i) => i.status === 'OPEN').length;
+    const resolved = incidents.filter((i) => i.status !== 'OPEN').length;
+    return { total, open, resolved };
+  }, [incidents]);
+
+  const filteredIncidents = useMemo(() => {
+    return incidents.filter((inc) => {
+      // 1. Lọc theo trạng thái xử lý
+      if (incidentStatusFilter === 'OPEN' && inc.status !== 'OPEN') return false;
+      if (incidentStatusFilter === 'RESOLVED' && inc.status === 'OPEN') return false;
+
+      // 2. Lọc theo từ khóa tìm kiếm
+      if (incidentSearchQuery.trim()) {
+        const q = incidentSearchQuery.trim().toLowerCase();
+        const matchRoom = (inc.roomCode || inc.roomId || '').toLowerCase().includes(q);
+        const matchDevice = (inc.deviceName || '').toLowerCase().includes(q);
+        const matchDesc = (inc.description || '').toLowerCase().includes(q);
+        const matchReporter = (inc.reporterName || '').toLowerCase().includes(q);
+        const matchCode = (inc.reporterCode || '').toLowerCase().includes(q);
+        if (!matchRoom && !matchDevice && !matchDesc && !matchReporter && !matchCode) {
+          return false;
+        }
+      }
+
+      // 3. Lọc theo thời gian
+      if (incidentTimeFilter !== 'ALL' && inc.createdAt) {
+        const incDate = new Date(inc.createdAt.includes('T') ? inc.createdAt : inc.createdAt.replace(' ', 'T'));
+        if (!isNaN(incDate.getTime())) {
+          const now = new Date();
+          if (incidentTimeFilter === 'TODAY') {
+            const isToday =
+              incDate.getFullYear() === now.getFullYear() &&
+              incDate.getMonth() === now.getMonth() &&
+              incDate.getDate() === now.getDate();
+            if (!isToday) return false;
+          } else if (incidentTimeFilter === 'WEEK') {
+            const diffMs = now.getTime() - incDate.getTime();
+            if (diffMs < -86400000 || diffMs > 7 * 86400000) return false;
+          } else if (incidentTimeFilter === 'MONTH') {
+            const diffMs = now.getTime() - incDate.getTime();
+            if (diffMs < -86400000 || diffMs > 30 * 86400000) return false;
+          } else if (incidentTimeFilter === 'CUSTOM' && incidentCustomDate) {
+            const [y, m, d] = incidentCustomDate.split('-').map(Number);
+            const isMatch =
+              incDate.getFullYear() === y &&
+              incDate.getMonth() === m - 1 &&
+              incDate.getDate() === d;
+            if (!isMatch) return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [incidents, incidentStatusFilter, incidentTimeFilter, incidentCustomDate, incidentSearchQuery]);
+
+  const hasActiveIncidentFilter =
+    incidentStatusFilter !== 'ALL' ||
+    incidentTimeFilter !== 'ALL' ||
+    Boolean(incidentSearchQuery.trim()) ||
+    Boolean(incidentCustomDate);
+
+  const resetIncidentFilters = () => {
+    setIncidentStatusFilter('ALL');
+    setIncidentTimeFilter('ALL');
+    setIncidentCustomDate('');
+    setIncidentSearchQuery('');
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-28 lg:pb-8 space-y-4 sm:space-y-6">
@@ -672,12 +751,14 @@ export const AdminDashboardPage: React.FC = () => {
             <AdminBookingTable
               bookings={bookings}
               onNavigateToApproval={() => navigate('/admin?tab=REGISTRATIONS')}
+              onRefresh={() => fetchData(false)}
+              isLoading={isLoading}
             />
           )}
 
           {activeTab === 'INCIDENTS' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-slate-900">Xử Lý Phản Ánh Sự Cố</h3>
@@ -685,22 +766,206 @@ export const AdminDashboardPage: React.FC = () => {
                       Theo dõi và xử lý các phản ánh sự cố kỹ thuật tại các phòng
                     </p>
                   </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => fetchData(false)}
+                      disabled={isLoading}
+                      className="inline-flex items-center gap-1.5 py-2 px-3.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-100 shadow-xs active:scale-95 transition-all disabled:opacity-50"
+                      title="Làm mới danh sách sự cố"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isLoading ? 'animate-spin' : ''}`} />
+                      <span>Làm mới</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateIncidentModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 py-2 px-3.5 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-500/20 active:scale-95 transition-all"
+                    >
+                      <Plus className="w-4 h-4" /> Báo sự cố mới
+                    </button>
+                  </div>
+                </div>
+
+                {/* BỘ LỌC TRẠNG THÁI (STATUS TABS) */}
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 pb-4">
                   <button
                     type="button"
-                    onClick={() => setIsCreateIncidentModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 py-2 px-3.5 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-500/20 active:scale-95 transition-all self-start sm:self-auto"
+                    onClick={() => setIncidentStatusFilter('ALL')}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                      incidentStatusFilter === 'ALL'
+                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                    }`}
                   >
-                    <Plus className="w-4 h-4" /> Báo sự cố mới
+                    <span>Tất cả sự cố</span>
+                    <span
+                      className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                        incidentStatusFilter === 'ALL' ? 'bg-blue-700 text-white' : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {incidentStats.total}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIncidentStatusFilter('OPEN')}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                      incidentStatusFilter === 'OPEN'
+                        ? 'bg-rose-600 text-white shadow-sm shadow-rose-500/20'
+                        : 'bg-rose-50 text-rose-700 hover:bg-rose-100/80 border border-rose-200'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                    <span>Chưa xử lý</span>
+                    <span
+                      className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                        incidentStatusFilter === 'OPEN' ? 'bg-rose-700 text-white' : 'bg-rose-200/80 text-rose-800'
+                      }`}
+                    >
+                      {incidentStats.open}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIncidentStatusFilter('RESOLVED')}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                      incidentStatusFilter === 'RESOLVED'
+                        ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100/80 border border-emerald-200'
+                    }`}
+                  >
+                    <span>Đã xử lý</span>
+                    <span
+                      className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                        incidentStatusFilter === 'RESOLVED'
+                          ? 'bg-emerald-700 text-white'
+                          : 'bg-emerald-200/80 text-emerald-800'
+                      }`}
+                    >
+                      {incidentStats.resolved}
+                    </span>
                   </button>
                 </div>
 
+                {/* BỘ LỌC TÌM KIẾM VÀ THỜI GIAN */}
+                <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                    {/* Ô TÌM KIẾM */}
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={incidentSearchQuery}
+                        onChange={(e) => setIncidentSearchQuery(e.target.value)}
+                        placeholder="Tìm theo phòng (L.103), thiết bị, người báo, MSSV, mô tả..."
+                        className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      />
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      {incidentSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setIncidentSearchQuery('')}
+                          className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                          title="Xóa tìm kiếm"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* BỘ LỌC THỜI GIAN NHANH */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1 mr-1">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        Thời gian:
+                      </span>
+
+                      {(
+                        [
+                          { id: 'ALL', label: 'Tất cả' },
+                          { id: 'TODAY', label: 'Hôm nay' },
+                          { id: 'WEEK', label: '7 ngày qua' },
+                          { id: 'MONTH', label: '30 ngày qua' },
+                          { id: 'CUSTOM', label: 'Theo ngày' },
+                        ] as const
+                      ).map((tf) => (
+                        <button
+                          key={tf.id}
+                          type="button"
+                          onClick={() => {
+                            setIncidentTimeFilter(tf.id);
+                            if (tf.id !== 'CUSTOM') setIncidentCustomDate('');
+                          }}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                            incidentTimeFilter === tf.id
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {tf.label}
+                        </button>
+                      ))}
+
+                      {/* DATE PICKER KHI CHỌN THEO NGÀY */}
+                      {incidentTimeFilter === 'CUSTOM' && (
+                        <input
+                          type="date"
+                          value={incidentCustomDate}
+                          onChange={(e) => setIncidentCustomDate(e.target.value)}
+                          className="px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      )}
+
+                      {/* NÚT ĐẶT LẠI NẾU CÓ BỘ LỌC HOẠT ĐỘNG */}
+                      {hasActiveIncidentFilter && (
+                        <button
+                          type="button"
+                          onClick={resetIncidentFilters}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors ml-auto lg:ml-1"
+                          title="Xóa tất cả bộ lọc"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Đặt lại</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {hasActiveIncidentFilter && (
+                    <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between pt-1 border-t border-slate-200/60">
+                      <span>
+                        Hiển thị <strong>{filteredIncidents.length}</strong> trên tổng số{' '}
+                        <strong>{incidents.length}</strong> sự cố
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* DANH SÁCH SỰ CỐ */}
                 <div className="space-y-3">
                   {incidents.length === 0 ? (
                     <div className="text-center py-8 text-slate-400 text-xs">
                       Chưa có sự cố nào được ghi nhận.
                     </div>
+                  ) : filteredIncidents.length === 0 ? (
+                    <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-200 p-6 flex flex-col items-center justify-center space-y-2">
+                      <AlertCircle className="w-8 h-8 text-slate-400" />
+                      <p className="text-sm font-bold text-slate-700">Không tìm thấy sự cố nào phù hợp với bộ lọc.</p>
+                      <p className="text-xs text-slate-500">
+                        Thử thay đổi từ khóa tìm kiếm hoặc đặt lại khoảng thời gian.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={resetIncidentFilters}
+                        className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-700 bg-white px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 shadow-xs"
+                      >
+                        Xóa bộ lọc
+                      </button>
+                    </div>
                   ) : (
-                    incidents.map((inc) => {
+                    filteredIncidents.map((inc) => {
                       const formattedTime = formatIncidentDateTime(inc.createdAt);
                       const reporterDisplay = inc.reporterCode
                         ? `${inc.reporterName} (${inc.reporterCode})`
@@ -717,19 +982,29 @@ export const AdminDashboardPage: React.FC = () => {
                               type="button"
                               onClick={() =>
                                 setSelectedIncidentImage({
-                                  url: inc.imageUrl,
+                                  url: inc.imageUrl!.startsWith('/') || inc.imageUrl!.startsWith('http') || inc.imageUrl!.startsWith('data:') ? inc.imageUrl! : `/${inc.imageUrl}`,
                                   title: `Ảnh sự cố: Phòng ${inc.roomCode || inc.roomId} - ${inc.deviceName || 'Thiết bị'}`,
                                 })
                               }
-                              className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 hover:border-blue-400 group shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                              className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 hover:border-blue-400 group shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm relative bg-slate-50"
                               title="Bấm để xem ảnh lớn"
                               aria-label={`Xem ảnh lớn sự cố: ${inc.description}`}
                             >
                               <img
-                                src={inc.imageUrl}
+                                src={inc.imageUrl.startsWith('/') || inc.imageUrl.startsWith('http') || inc.imageUrl.startsWith('data:') ? inc.imageUrl : `/${inc.imageUrl}`}
                                 alt={`Ảnh minh họa sự cố: ${inc.description}`}
                                 loading="lazy"
                                 className="w-20 h-20 object-cover group-hover:scale-105 transition-transform"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent && !parent.querySelector('.img-fallback-placeholder')) {
+                                    const fallback = document.createElement('div');
+                                    fallback.className = 'img-fallback-placeholder w-20 h-20 bg-slate-100 flex flex-col items-center justify-center text-slate-400 text-[10px] font-semibold text-center p-1';
+                                    fallback.innerHTML = '<span class="text-xs">📷</span><span>Ảnh đính kèm</span>';
+                                    parent.appendChild(fallback);
+                                  }
+                                }}
                               />
                             </button>
                           )}

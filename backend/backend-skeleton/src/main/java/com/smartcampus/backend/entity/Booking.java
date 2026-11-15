@@ -34,10 +34,14 @@ public class Booking extends BaseEntity {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
+    @Column(name = "booking_date")
+    private java.time.LocalDate bookingDate;
+
     private LocalDateTime startTime;
 
     private LocalDateTime endTime;
 
+    @Column(name = "num_people")
     private Integer numberOfPeople;
 
     private String purpose; // Mục đích sử dụng
@@ -57,12 +61,26 @@ public class Booking extends BaseEntity {
     @Column(name = "checkin_time")
     private LocalDateTime checkinTime; // Thời gian thực tế quét mã QR check-in (FR-5.2)
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by")
+    private User approvedBy;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BookingMember> bookingMembers = new ArrayList<>();
 
     public enum BookingStatus {
         PENDING_APPROVAL, CONFIRMED, IN_USE, COMPLETED, COMPLETED_FORCE,
         CANCELLED_USER, CANCELLED_AUTO, CANCELLED_ADMIN
+    }
+
+    @PrePersist
+    protected void onBookingCreate() {
+        if (this.startTime != null && this.bookingDate == null) {
+            this.bookingDate = this.startTime.toLocalDate();
+        }
     }
 
     /**

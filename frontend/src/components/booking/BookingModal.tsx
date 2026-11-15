@@ -56,6 +56,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   }, [apiError]);
 
+  // Tự động tắt banner lỗi sau 5 giây
+  useEffect(() => {
+    if (apiError) {
+      const timer = setTimeout(() => {
+        setApiError('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [apiError]);
+
   // Sinh các khung giờ khả dụng cho tầng
   const generateTimeSlots = (floor: number) => {
     const hours = FLOOR_HOURS[floor] || { open: '07:30', close: '20:00' };
@@ -283,7 +293,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       });
 
       if (res.success && res.data) {
-        toast.success('Đặt phòng thành công!');
+        const isPendingApproval = res.data.status === 'PENDING_APPROVAL' || res.data.bookingStatus === 'PENDING_APPROVAL';
+        if (isPendingApproval) {
+          toast.success('Đã gửi yêu cầu đặt phòng hội nghị, đang chờ ban quản lý phê duyệt!');
+        } else {
+          toast.success('Đặt phòng thành công! Mã QR đã sẵn sàng.');
+        }
         onSuccess(res.data);
         onClose();
       } else {

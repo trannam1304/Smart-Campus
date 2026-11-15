@@ -27,9 +27,15 @@ export const ArchitecturalMapPage: React.FC = () => {
   };
 
   const [qrData, setQrData] = useState<any>(null);
+  const [refreshKey, setRefreshKey] = useState<number>(0);
 
   const handleBookingSuccess = (booking: any) => {
-    setQrData(booking);
+    if (booking.bookingStatus === 'PENDING_APPROVAL' || booking.status === 'PENDING_APPROVAL') {
+      setToastMessage('Đã gửi yêu cầu đặt phòng thành công. Vui lòng chờ Quản trị viên/Quản lý phê duyệt.');
+    } else {
+      setQrData(booking);
+    }
+    setRefreshKey((prev) => prev + 1);
   };
 
   return (
@@ -88,6 +94,7 @@ export const ArchitecturalMapPage: React.FC = () => {
 
           {selectedFloor && (
             <InteractiveFloorPlan
+              key={`${selectedFloor.floorNumber}-${refreshKey}`}
               floorId={(selectedFloor.floorNumber ?? 0).toString()}
               onBookRoom={handleBookRoom}
             />
