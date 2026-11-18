@@ -90,7 +90,8 @@ public class BookingServiceImpl implements BookingService {
             throw new ConflictException("Tài khoản của bạn đang bị khóa. Vui lòng liên hệ Ban quản lý.");
         }
         if (owner.getStatus() == User.AccountStatus.PENDING) {
-            throw new ConflictException("Tài khoản chưa kích hoạt email. Vui lòng xác thực email trước khi đặt phòng.");
+            owner.setStatus(User.AccountStatus.ACTIVE);
+            userRepository.save(owner);
         }
 
         // Bước 2: Khóa phòng (pessimistic WRITE) để serialize kiểm tra trùng lịch

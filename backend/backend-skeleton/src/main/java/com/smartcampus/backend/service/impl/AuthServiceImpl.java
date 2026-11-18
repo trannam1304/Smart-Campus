@@ -96,25 +96,19 @@ public class AuthServiceImpl implements AuthService {
             throw new ConflictException("Email hoặc MSSV đã được đăng ký trên hệ thống.");
         }
 
-        // Mã hoá mật khẩu, lưu trạng thái ACTIVE (hỗ trợ test ngay môi trường dev) và sinh mã xác thực email
+        // Mã hoá mật khẩu, kích hoạt ACTIVE ngay lập tức (không cần duyệt/xác thực email)
         User user = new User();
-        user.setEmail(request.getEmail());
-        user.setStudentCode(request.getStudentCode());
-        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail().trim().toLowerCase());
+        user.setStudentCode(request.getStudentCode().trim());
+        user.setFullName(request.getFullName().trim());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setFaculty(request.getFaculty());
         user.setRole(User.Role.STUDENT);
         user.setStatus(User.AccountStatus.ACTIVE);
-
-        // Sinh mã xác thực email, hiệu lực 24 giờ
-        String verificationToken = UUID.randomUUID().toString();
-        user.setVerificationToken(verificationToken);
-        user.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+        user.setVerificationToken(null);
+        user.setVerificationTokenExpiresAt(null);
 
         userRepository.save(user);
-
-        // Gửi email xác thực (dev: chỉ ghi log)
-        emailService.sendVerificationEmail(request.getEmail(), verificationToken);
 
         return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
     }
@@ -150,14 +144,24 @@ public class AuthServiceImpl implements AuthService {
     // ------------------------------------------------------------------
     @Override
     public AuthResponse login(LoginRequest request) {
+        // Tự động chuyển PENDING sang ACTIVE nếu tài khoản trước đó ở trạng thái PENDING (bỏ cơ chế duyệt)
+        String loginId = request.getUsername() != null ? request.getUsername().trim() : "";
+        User existingUser = userRepository.findByEmail(loginId)
+                .or(() -> userRepository.findByStudentCode(loginId))
+                .orElse(null);
+        if (existingUser != null && existingUser.getStatus() == User.AccountStatus.PENDING) {
+            existingUser.setStatus(User.AccountStatus.ACTIVE);
+            existingUser.setVerificationToken(null);
+            existingUser.setVerificationTokenExpiresAt(null);
+            userRepository.save(existingUser);
+        }
+
         // Xác thực bằng AuthenticationManager (username = email hoặc MSSV)
         org.springframework.security.core.Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getUsername(), request.getPassword()));
-        } catch (org.springframework.security.authentication.DisabledException ex) {
-            throw new ConflictException("Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để xác thực tài khoản.");
         } catch (org.springframework.security.authentication.LockedException ex) {
             throw new ConflictException("Tài khoản đang bị khóa. Vui lòng liên hệ Ban quản lý.");
         } catch (org.springframework.security.authentication.BadCredentialsException ex) {

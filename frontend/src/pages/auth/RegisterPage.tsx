@@ -172,7 +172,7 @@ export const RegisterPage: React.FC = () => {
         password,
         faculty: faculty.trim(),
       });
-      success('Vui lòng kiểm tra email trường để xác nhận tài khoản');
+      success('Đăng ký tài khoản thành công! Bạn có thể đăng nhập ngay.');
       navigate('/login');
     } catch (err: unknown) {
       setError(getErrorMessage(err));
