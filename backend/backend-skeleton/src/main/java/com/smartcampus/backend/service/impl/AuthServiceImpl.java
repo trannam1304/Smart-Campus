@@ -25,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -95,27 +96,21 @@ public class AuthServiceImpl implements AuthService {
             throw new ConflictException("Email hoặc MSSV đã được đăng ký trên hệ thống.");
         }
 
-        // Mã hoá mật khẩu, lưu trạng thái PENDING (chưa kích hoạt email)
+        // Mã hoá mật khẩu, kích hoạt ACTIVE ngay lập tức (không cần duyệt/xác thực email)
         User user = new User();
-        user.setEmail(request.getEmail());
-        user.setStudentCode(request.getStudentCode());
-        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail().trim().toLowerCase());
+        user.setStudentCode(request.getStudentCode().trim());
+        user.setFullName(request.getFullName().trim());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setFaculty(request.getFaculty());
         user.setRole(User.Role.STUDENT);
-        user.setStatus(User.AccountStatus.PENDING);
-
-        // Sinh mã xác thực email, hiệu lực 24 giờ
-        String verificationToken = UUID.randomUUID().toString();
-        user.setVerificationToken(verificationToken);
-        user.setVerificationTokenExpiresAt(LocalDateTime.now().plusHours(24));
+        user.setStatus(User.AccountStatus.ACTIVE);
+        user.setVerificationToken(null);
+        user.setVerificationTokenExpiresAt(null);
 
         userRepository.save(user);
 
-        // Gửi email xác thực (dev: chỉ ghi log)
-        emailService.sendVerificationEmail(request.getEmail(), verificationToken);
-
-        return new AuthResponse(null, user.getRole().name(), user.getFullName());
+        return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
     }
 
     // ------------------------------------------------------------------
@@ -133,7 +128,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (user.getStatus() == User.AccountStatus.ACTIVE) {
-            return new AuthResponse(null, user.getRole().name(), user.getFullName());
+            return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
         }
 
         user.setStatus(User.AccountStatus.ACTIVE);
@@ -141,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
         user.setVerificationTokenExpiresAt(null);
         userRepository.save(user);
 
-        return new AuthResponse(null, user.getRole().name(), user.getFullName());
+        return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
     }
 
     // ------------------------------------------------------------------
@@ -149,12 +144,28 @@ public class AuthServiceImpl implements AuthService {
     // ------------------------------------------------------------------
     @Override
     public AuthResponse login(LoginRequest request) {
+        // Tự động chuyển PENDING sang ACTIVE nếu tài khoản trước đó ở trạng thái PENDING (bỏ cơ chế duyệt)
+        String loginId = request.getUsername() != null ? request.getUsername().trim() : "";
+        User existingUser = userRepository.findByEmail(loginId)
+                .or(() -> userRepository.findByStudentCode(loginId))
+                .orElse(null);
+        if (existingUser != null && existingUser.getStatus() == User.AccountStatus.PENDING) {
+            existingUser.setStatus(User.AccountStatus.ACTIVE);
+            existingUser.setVerificationToken(null);
+            existingUser.setVerificationTokenExpiresAt(null);
+            userRepository.save(existingUser);
+        }
+
         // Xác thực bằng AuthenticationManager (username = email hoặc MSSV)
         org.springframework.security.core.Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getUsername(), request.getPassword()));
+        } catch (org.springframework.security.authentication.LockedException ex) {
+            throw new ConflictException("Tài khoản đang bị khóa. Vui lòng liên hệ Ban quản lý.");
+        } catch (org.springframework.security.authentication.BadCredentialsException ex) {
+            throw new ConflictException("Mật khẩu không chính xác hoặc tài khoản không tồn tại.");
         } catch (Exception ex) {
             throw new ConflictException("Mật khẩu không chính xác hoặc tài khoản không tồn tại.");
         }
@@ -164,10 +175,12 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Không tìm thấy tài khoản người dùng."));
 
-        // Tài khoản chưa kích hoạt email (PENDING) → không cho đăng nhập
+        // Tài khoản chưa kích hoạt email (PENDING): Tự động kích hoạt sang ACTIVE khi đăng nhập hợp lệ
         if (user.getStatus() == User.AccountStatus.PENDING) {
-            throw new ConflictException(
-                    "Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để xác thực tài khoản.");
+            user.setStatus(User.AccountStatus.ACTIVE);
+            user.setVerificationToken(null);
+            user.setVerificationTokenExpiresAt(null);
+            userRepository.save(user);
         }
 
         // Tài khoản bị khóa → không cho đăng nhập
@@ -187,7 +200,7 @@ public class AuthServiceImpl implements AuthService {
         refreshToken.setIsRevoked(false);
         refreshTokenRepository.save(refreshToken);
 
-        return new AuthResponse(token, user.getRole().name(), user.getFullName(), refreshTokenStr);
+        return new AuthResponse(token, user.getRole().name(), user.getFullName(), refreshTokenStr, user.getStudentCode(), user.getEmail(), user.getId());
     }
 
     // ------------------------------------------------------------------
@@ -208,8 +221,10 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        return new AuthResponse(null, user.getRole().name(), user.getFullName());
+        return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
     }
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     // ------------------------------------------------------------------
     // FR-1.4: Gửi mã OTP khôi phục mật khẩu
@@ -220,8 +235,8 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Không tìm thấy tài khoản với email này."));
 
-        // Sinh mã OTP 6 chữ số
-        String otpCode = String.valueOf((int) (Math.random() * 900000) + 100000);
+        // Sinh mã OTP 6 chữ số an toàn bảo mật
+        String otpCode = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
 
         PasswordResetOtp otp = new PasswordResetOtp();
         otp.setUserId(user.getId());
@@ -261,6 +276,9 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         otpRepository.markAsUsed(otp.getId());
+
+        // Thu hồi toàn bộ Refresh Tokens để vô hiệu hóa phiên cũ nếu bị lộ mật khẩu
+        refreshTokenRepository.revokeAllByUserId(user.getId());
 
         return "Mật khẩu đã được cập nhật thành công.";
     }
@@ -309,7 +327,7 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.save(newRefreshToken);
 
         String newAccessToken = jwtTokenProvider.generateToken(user);
-        return new AuthResponse(newAccessToken, user.getRole().name(), user.getFullName(), newRefreshTokenStr);
+        return new AuthResponse(newAccessToken, user.getRole().name(), user.getFullName(), newRefreshTokenStr, user.getStudentCode(), user.getEmail(), user.getId());
     }
 
     // ------------------------------------------------------------------

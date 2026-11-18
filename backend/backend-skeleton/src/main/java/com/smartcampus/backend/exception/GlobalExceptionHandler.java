@@ -39,6 +39,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataConflict(DataIntegrityViolationException ex) {
+        logger.error("Data integrity violation: " + ex.getMessage(), ex);
         return response(HttpStatus.CONFLICT, "ERR_DATA_CONFLICT",
                 "Không thể thực hiện thao tác do dữ liệu đang được tham chiếu hoặc bị trùng.");
     }
@@ -57,13 +58,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({ConstraintViolationException.class, IllegalArgumentException.class,
             HttpMessageNotReadableException.class})
     public ResponseEntity<ApiResponse<Void>> handleInvalidRequest(Exception ex) {
-        return response(HttpStatus.BAD_REQUEST, "ERR_VALIDATION", "Dữ liệu yêu cầu không hợp lệ.");
+        logger.warn("Validation error: " + ex.getMessage(), ex);
+        return response(HttpStatus.BAD_REQUEST, "ERR_VALIDATION", ex.getMessage() != null ? ex.getMessage() : "Dữ liệu yêu cầu không hợp lệ.");
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFoundResource(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        return response(HttpStatus.NOT_FOUND, "ERR_NOT_FOUND", "Endpoint không tồn tại: " + ex.getResourcePath());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex) {
-        logger.error("Lỗi không xử lý được khi gọi API.", ex);
-        return response(HttpStatus.INTERNAL_SERVER_ERROR, "ERR_INTERNAL", "Đã có lỗi xảy ra.");
+        logger.error("Lỗi không xử lý được khi gọi API: " + ex.getMessage(), ex);
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "ERR_INTERNAL",
+                ex.getMessage() != null ? ex.getMessage() : "Đã có lỗi xảy ra trên hệ thống.");
     }
 
     private ResponseEntity<ApiResponse<Void>> response(HttpStatus status, String errorCode, String message) {

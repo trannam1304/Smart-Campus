@@ -4,35 +4,57 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 /**
- * Entity Báo cáo sự cố thiết bị.
+ * Entity Báo cáo sự cố thiết bị (incident_reports).
  * Nghiệp vụ liên quan: FR-4.2 (gửi báo cáo sự cố)
- * TODO (Nhóm 4 - Device): bổ sung field hình ảnh đính kèm theo ERD thực tế.
  */
 @Getter
 @Setter
 @Entity
 @Table(name = "incident_reports")
-@AttributeOverride(name = "id", column = @Column(name = "report_id"))
-public class IncidentReport extends BaseEntity {
+public class IncidentReport {
 
-    @ManyToOne
-    @JoinColumn(name = "room_id")
-    private Room room;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "report_id")
+    private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "hardware_id")
-    private HardwareResource hardware;
+    @Column(name = "equipment_id", nullable = false)
+    private Long equipmentId;
 
-    @ManyToOne
-    @JoinColumn(name = "reported_by")
-    private User reportedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reporter_id", nullable = false)
+    private User reporter;
 
+    @Column(name = "booking_id")
+    private Long bookingId;
+
+    @Column(name = "description", nullable = false)
     private String description;
+
+    @Column(name = "image_url")
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
-    private TicketStatus status; // OPEN / IN_PROGRESS / RESOLVED
+    @Column(name = "status", nullable = false)
+    private IncidentStatus status; // NEW / PROCESSING / RESOLVED
 
-    public enum TicketStatus { OPEN, IN_PROGRESS, RESOLVED }
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+        if (this.status == null) {
+            this.status = IncidentStatus.NEW;
+        }
+    }
+
+    public enum IncidentStatus {
+        NEW, PROCESSING, RESOLVED
+    }
 }

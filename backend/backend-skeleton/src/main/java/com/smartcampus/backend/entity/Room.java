@@ -7,25 +7,36 @@ import java.util.List;
 
 /**
  * Entity Phòng học tự học.
- * Nghiệp vụ liên quan: FR-2.1 (lịch trạng thái), FR-2.2 (sơ đồ tầng), FR-2.3 (bộ lọc), FR-2.4 (mã màu trạng thái)
- * TODO (Nhóm 2/4 - Room & Device): bổ sung field toạ độ SVG, sức chứa, tòa nhà/tầng theo ERD.
+ * Nghiệp vụ liên quan: FR-2.1, FR-2.2, FR-2.3, FR-2.4
  */
 @Getter
 @Setter
 @Entity
 @Table(name = "rooms")
-@AttributeOverride(name = "id", column = @Column(name = "room_id"))
-public class Room extends BaseEntity {
+public class Room {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "room_id")
+    private Long id;
+
+    @Column(name = "room_code")
     private String roomCode;
+
+    @Transient
     private String building;   // Tòa nhà
+
+    @Transient
     private Integer floor;     // Tầng
+
+    @Column(name = "capacity")
     private Integer capacity;  // Sức chứa
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "base_status")
     private RoomStatus status; // AVAILABLE / BOOKED / MAINTENANCE / SELF_BOOKED - FR-2.4
 
-    @OneToMany(mappedBy = "room")
+    @Transient
     private List<HardwareResource> hardwareResources; // FR-4.1, FR-4.3
 
     public enum RoomStatus { AVAILABLE, BOOKED, MAINTENANCE, SELF_BOOKED }

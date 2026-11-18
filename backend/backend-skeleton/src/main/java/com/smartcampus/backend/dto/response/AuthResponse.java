@@ -15,11 +15,21 @@ public class AuthResponse {
     private String role;
     private String fullName;
     private String refreshToken; // Refresh Token (dài hạn)
+    private String studentCode;
+    private String email;
+    private Long userId;
 
     public AuthResponse(String token, String role, String fullName) {
         this.token = token;
         this.role = role;
         this.fullName = fullName;
         this.refreshToken = null;
+    }
+
+    public AuthResponse(String token, String role, String fullName, String refreshToken) {
+        this.token = token;
+        this.role = role;
+        this.fullName = fullName;
+        this.refreshToken = refreshToken;
     }
 }

@@ -1,6 +1,15 @@
 export type RoomStatus = 'AVAILABLE' | 'BOOKED' | 'MAINTENANCE' | 'SELF_BOOKED';
 
-export type DeviceCategory = 'PROJECTOR' | 'TV' | 'WHITEBOARD' | 'AC' | 'SOCKET' | 'AUDIO' | 'OTHER';
+export type DeviceCategory =
+  | 'PROJECTOR'
+  | 'TV'
+  | 'WHITEBOARD'
+  | 'SOFA'
+  | 'TABLE_CHAIR'
+  | 'AC'
+  | 'SOCKET'
+  | 'AUDIO'
+  | 'OTHER';
 
 export interface RoomDevice {
   id: string;
@@ -56,6 +65,8 @@ export interface Booking {
   qrCode: string;
   status: BookingStatus;
   checkInTime?: string;
+  checkedInCount?: number;
+  totalMembers?: number;
   cancelReason?: string;
   createdAt: string;
 }

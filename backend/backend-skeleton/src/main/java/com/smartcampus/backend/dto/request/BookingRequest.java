@@ -1,5 +1,6 @@
 package com.smartcampus.backend.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -16,6 +17,22 @@ public class BookingRequest {
     @NotNull(message = "Vui lòng chọn phòng.")
     private Long roomId;
 
+    @com.fasterxml.jackson.annotation.JsonSetter("roomId")
+    public void setRoomId(Object id) {
+        if (id == null) {
+            this.roomId = null;
+        } else if (id instanceof Number n) {
+            this.roomId = n.longValue();
+        } else {
+            String s = id.toString().replaceFirst("(?i)^ROOM-", "").trim();
+            try {
+                this.roomId = Long.parseLong(s);
+            } catch (Exception e) {
+                this.roomId = null;
+            }
+        }
+    }
+
     @NotNull(message = "Vui lòng chọn giờ bắt đầu.")
     private LocalDateTime startTime;
 
@@ -23,6 +40,7 @@ public class BookingRequest {
     private LocalDateTime endTime;
 
     @Positive(message = "Số người phải lớn hơn 0.")
+    @JsonAlias({"occupancy", "participantsCount"})
     private Integer numberOfPeople;
 
     @Size(max = 500, message = "Mục đích sử dụng không quá 500 ký tự.")
@@ -34,5 +52,6 @@ public class BookingRequest {
      */
     @NotEmpty(message = "Vui lòng nhập danh sách thành viên nhóm.")
     @Size(max = 50, message = "Quá nhiều thành viên trong nhóm.")
+    @JsonAlias({"memberStudentCodes", "studentCodes", "participantIds"})
     private List<String> memberCodes;
 }

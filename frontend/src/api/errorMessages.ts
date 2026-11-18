@@ -22,12 +22,12 @@ export const getErrorMessage = (err: unknown): string => {
       return errorMap[error.errorCode];
     }
 
-    if (error.status >= 500) {
-      return 'Lỗi máy chủ (500), vui lòng thử lại sau.';
+    if (error.message && error.message !== 'ERR_INTERNAL' && error.message !== 'Lỗi không xác định') {
+      return error.message;
     }
 
-    if (error.message) {
-      return error.message;
+    if (error.status >= 500) {
+      return 'Lỗi máy chủ (500), vui lòng thử lại sau.';
     }
   }
 

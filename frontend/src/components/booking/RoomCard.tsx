@@ -1,8 +1,18 @@
 import React from 'react';
 import { Room } from '../../types/booking';
 import { StatusBadge } from '../ui/StatusBadge';
-import { Users, Tv, Monitor, Wifi, AlertTriangle, Tag, Bookmark, Calendar } from 'lucide-react';
+import { Users, Tv, Projector, Presentation, Armchair, Layers, Wifi, Tag, Calendar, Bookmark, AlertTriangle } from 'lucide-react';
 import { minOccupancy } from '../../utils/bookingValidation';
+
+const getDeviceIcon = (name?: string, category?: string) => {
+  const n = (name || '').toLowerCase();
+  const c = category || '';
+  if (c === 'SOFA' || n.includes('sofa')) return <Armchair className="w-3 h-3 text-amber-600 shrink-0" />;
+  if (c === 'PROJECTOR' || n.includes('máy chiếu') || n.includes('projector')) return <Projector className="w-3 h-3 text-indigo-600 shrink-0" />;
+  if (c === 'TV' || n.includes('tv') || n.includes('tivi')) return <Tv className="w-3 h-3 text-blue-600 shrink-0" />;
+  if (c === 'WHITEBOARD' || n.includes('bảng')) return <Presentation className="w-3 h-3 text-emerald-600 shrink-0" />;
+  return <Layers className="w-3 h-3 text-slate-500 shrink-0" />;
+};
 
 interface RoomCardProps {
   room: Room;
@@ -62,7 +72,7 @@ export const RoomCard: React.FC<RoomCardProps> = ({ room, onBook, onViewSchedule
                     : 'bg-rose-100 text-rose-700 font-semibold'
                 }`}
               >
-                {dev.name.includes('TV') ? <Tv className="w-3 h-3" /> : <Monitor className="w-3 h-3" />}
+                {getDeviceIcon(dev.name, dev.category)}
                 {dev.name} {dev.status !== 'GOOD' && '(Hỏng)'}
               </span>
             ))}

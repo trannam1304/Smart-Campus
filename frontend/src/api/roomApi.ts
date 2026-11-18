@@ -24,9 +24,11 @@ const mapRoomTypeCodeToType = (code?: string): string => {
     case 'PRESENTATION':
       return 'Phòng thuyết trình';
     case 'VIDEO':
+    case 'VIDEO_ROOM':
       return 'Phòng video';
     case 'STUDY':
     case 'SELF_STUDY':
+    case 'INDIVIDUAL':
       return 'Phòng tự học';
     case 'CONFERENCE':
       return 'Phòng hội nghị';
@@ -41,6 +43,22 @@ const mapFloorNumberToCode = (floor?: number): string => {
   if (floor === 2) return '2nd - Floor';
   if (floor === 3) return '3rd - Floor';
   return `${floor}th - Floor`;
+};
+
+export const mapEquipmentTypeToCategory = (type?: string, name?: string): DeviceCategory => {
+  const t = (type || '').toUpperCase();
+  const n = (name || '').toLowerCase();
+
+  if (t === 'SOFA' || n.includes('sofa')) return 'SOFA';
+  if (t === 'PROJECTOR' || t.includes('PROJECTOR') || t.includes('CHIEU') || n.includes('máy chiếu') || n.includes('projector')) return 'PROJECTOR';
+  if (t === 'TV' || t === 'DISPLAY' || t.includes('TV') || t.includes('MAN HINH') || n.includes('tv') || n.includes('tivi') || n.includes('màn hình')) return 'TV';
+  if (t === 'WHITEBOARD' || t.includes('BOARD') || t.includes('BANG') || n.includes('bảng') || n.includes('whiteboard')) return 'WHITEBOARD';
+  if (t === 'TABLE_CHAIR' || n.includes('bàn') || n.includes('ghế')) return 'TABLE_CHAIR';
+  if (t === 'AC' || t === 'AIRCON' || t.includes('DIEU HOA') || t.includes('LANH') || n.includes('điều hòa') || n.includes('máy lạnh')) return 'AC';
+  if (t === 'SOCKET' || t.includes('SOCKET') || t.includes('CAM') || n.includes('ổ cắm') || n.includes('socket')) return 'SOCKET';
+  if (t === 'AUDIO' || t === 'SOUND_SYSTEM' || t.includes('LOA') || t.includes('AM THANH') || n.includes('loa') || n.includes('âm thanh')) return 'AUDIO';
+
+  return 'OTHER';
 };
 
 export const normalizeRoom = (r: any): Room => {
@@ -58,7 +76,7 @@ export const normalizeRoom = (r: any): Room => {
       id: String(e.equipmentId || e.id || ''),
       name: e.equipmentName || e.name || 'Thiết bị',
       status: e.status || e.equipmentStatus || 'GOOD',
-      category: e.equipmentType || e.category || 'OTHER',
+      category: mapEquipmentTypeToCategory(e.type || e.equipmentType || e.category, e.equipmentName || e.name || e.name),
     })),
     description: r.description,
     minOccupancy: r.minOccupancy,
@@ -69,7 +87,8 @@ export const normalizeRoom = (r: any): Room => {
 };
 
 export const getRoomsApi = async (params: GetRoomsParams): Promise<ApiEnvelope<Paginated<Room>>> => {
-  const res: any = await axiosClient.get('/rooms', { params });
+  const queryParams = { limit: 100, ...params };
+  const res: any = await axiosClient.get('/rooms', { params: queryParams });
   let rawList: any[] = [];
   if (Array.isArray(res.data)) {
     rawList = res.data;
@@ -79,9 +98,49 @@ export const getRoomsApi = async (params: GetRoomsParams): Promise<ApiEnvelope<P
     rawList = res.items;
   }
 
-  const items = rawList.map(normalizeRoom);
-  const pagination = res.pagination || res.data?.pagination || {
-    page: 1,
+  let items = rawList.map(normalizeRoom);
+
+  // Client-side filtering dự phòng khi Backend chưa hỗ trợ lọc các tham số này
+  if (params.floor !== undefined && params.floor !== null && String(params.floor) !== '') {
+    const targetFloor = Number(params.floor);
+    items = items.filter((r) => r.floor === targetFloor);
+  }
+
+  if (params.capacity && params.capacity > 0) {
+    items = items.filter((r) => r.capacity >= params.capacity!);
+  }
+
+  if (params.roomType && params.roomType !== 'ALL' && params.roomType.trim() !== '') {
+    items = items.filter((r) => r.roomType === params.roomType);
+  }
+
+  if (params.q && params.q.trim()) {
+    const query = params.q.trim().toLowerCase();
+    items = items.filter(
+      (r) =>
+        r.roomCode.toLowerCase().includes(query) ||
+        r.roomType.toLowerCase().includes(query)
+    );
+  }
+
+  if (params.includeMaintenance === false) {
+    items = items.filter((r) => r.status !== 'MAINTENANCE');
+  }
+
+  if (params.equipment && params.equipment.length > 0) {
+    items = items.filter((room) =>
+      params.equipment!.every((eqCat) =>
+        room.devices.some(
+          (d) =>
+            d.category === eqCat &&
+            d.status === 'GOOD'
+        )
+      )
+    );
+  }
+
+  const pagination = {
+    page: params ? 1 : 1,
     limit: items.length || 100,
     totalElements: items.length,
     totalPages: 1,
@@ -137,9 +196,30 @@ export const getFloorMapApi = async (floorId: string, date?: string, time?: stri
 };
 
 export const getRoomBookingsApi = async (roomId: string, date: string): Promise<ApiEnvelope<Booking[]>> => {
-  return axiosClient.get(`/rooms/${roomId}/bookings`, { params: { date } });
+  try {
+    return await axiosClient.get(`/rooms/${roomId}/bookings`, { params: { date } });
+  } catch {
+    // Dự phòng nếu backend chưa có endpoint này
+    return {
+      success: true,
+      code: 200,
+      message: 'OK',
+      data: [],
+      timestamp: new Date().toISOString(),
+    };
+  }
 };
 
 export const getRoomBookingsRangeApi = async (roomId: string, startDate: string, endDate: string): Promise<ApiEnvelope<Booking[]>> => {
-  return axiosClient.get(`/rooms/${roomId}/bookings`, { params: { startDate, endDate } });
+  try {
+    return await axiosClient.get(`/rooms/${roomId}/bookings/range`, { params: { startDate, endDate } });
+  } catch {
+    return {
+      success: true,
+      code: 200,
+      message: 'OK',
+      data: [],
+      timestamp: new Date().toISOString(),
+    };
+  }
 };

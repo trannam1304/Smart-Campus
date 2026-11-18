@@ -78,10 +78,26 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     // ------------------------------------------------------------------
     List<Booking> findByRoomIdAndStartTimeBetween(Long roomId, LocalDateTime from, LocalDateTime to);
 
+    List<Booking> findByStatusAndStartTimeBefore(BookingStatus status, LocalDateTime threshold);
+
+    List<Booking> findByStatusAndEndTimeBefore(BookingStatus status, LocalDateTime threshold);
+
     // FR-5.2: Tìm booking qua mã QR quét
     Optional<Booking> findByQrCode(String qrCode);
 
     @Transactional
     @Query("UPDATE Booking b SET b.status = :status WHERE b.id = :id")
     int updateStatusById(Long id, BookingStatus status);
+
+    @Query("SELECT b FROM Booking b WHERE b.user.id = :userId OR EXISTS (SELECT m FROM BookingMember m WHERE m.booking = b AND m.user.id = :userId) ORDER BY b.startTime DESC")
+    List<Booking> findAllUserBookings(@Param("userId") Long userId);
+
+    @Query("SELECT b FROM Booking b WHERE b.room.id = :roomId AND b.startTime >= :start AND b.startTime <= :end AND b.status IN (:statuses) ORDER BY b.startTime ASC")
+    List<Booking> findRoomBookingsByRange(
+            @Param("roomId") Long roomId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("statuses") List<BookingStatus> statuses);
+
+    List<Booking> findAllByOrderByStartTimeDesc();
 }

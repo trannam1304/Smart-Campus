@@ -33,6 +33,7 @@ export const durationMinutes = (start: string, end: string): number => {
 };
 
 export interface BookingInput {
+  date?: string; // YYYY-MM-DD
   start: string; // HH:mm
   end: string; // HH:mm
   purpose: string;
@@ -45,8 +46,30 @@ export interface RoomInfo {
   floor: number;
 }
 
-export const validateBookingForm = (input: BookingInput, room: RoomInfo): Record<string, string> => {
+export const validateBookingForm = (
+  input: BookingInput,
+  room: RoomInfo,
+  currentDateObj: Date = new Date()
+): Record<string, string> => {
   const errors: Record<string, string> = {};
+
+  if (input.date) {
+    const yyyy = currentDateObj.getFullYear();
+    const mm = String(currentDateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(currentDateObj.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    if (input.date < todayStr) {
+      errors.date = "Không thể đặt phòng vào ngày trong quá khứ.";
+    } else if (input.date === todayStr) {
+      const currentHH = String(currentDateObj.getHours()).padStart(2, '0');
+      const currentMM = String(currentDateObj.getMinutes()).padStart(2, '0');
+      const currentTimeStr = `${currentHH}:${currentMM}`;
+      if (input.start <= currentTimeStr) {
+        errors.time = "Giờ bắt đầu phải sau thời gian hiện tại.";
+      }
+    }
+  }
 
   const startMinutes = input.start.split(':').map(Number);
   const endMinutes = input.end.split(':').map(Number);
@@ -58,30 +81,32 @@ export const validateBookingForm = (input: BookingInput, room: RoomInfo): Record
 
   const duration = durationMinutes(input.start, input.end);
 
-  if (duration <= 0) {
-    errors.time = "Thời gian bắt đầu phải trước thời gian kết thúc.";
-  } else if (startMinutes[1] !== 0 && startMinutes[1] !== 30) {
-    errors.time = "Phút của thời gian bắt đầu phải là 00 hoặc 30.";
-  } else if (endMinutes[1] !== 0 && endMinutes[1] !== 30) {
-    errors.time = "Phút của thời gian kết thúc phải là 00 hoặc 30.";
-  } else if (duration < MIN_DURATION_MIN) {
-    errors.time = "Thời gian đặt phòng tối thiểu là 1 giờ 30 phút.";
-  } else if (!ALLOWED_DURATIONS.includes(duration)) {
-    errors.time = "Phòng này chỉ được đặt 1 giờ 30 phút hoặc 2 giờ / lượt.";
-  } else {
-    // Check floor hours
-    const hours = FLOOR_HOURS[room.floor];
-    if (hours) {
-        const floorOpen = hours.open.split(':').map(Number);
-        const floorClose = hours.close.split(':').map(Number);
-        const startTotal = startMinutes[0] * 60 + startMinutes[1];
-        const endTotal = endMinutes[0] * 60 + endMinutes[1];
-        const openTotal = floorOpen[0] * 60 + floorOpen[1];
-        const closeTotal = floorClose[0] * 60 + floorClose[1];
+  if (!errors.time) {
+    if (duration <= 0) {
+      errors.time = "Thời gian bắt đầu phải trước thời gian kết thúc.";
+    } else if (startMinutes[1] !== 0 && startMinutes[1] !== 30) {
+      errors.time = "Phút của thời gian bắt đầu phải là 00 hoặc 30.";
+    } else if (endMinutes[1] !== 0 && endMinutes[1] !== 30) {
+      errors.time = "Phút của thời gian kết thúc phải là 00 hoặc 30.";
+    } else if (duration < MIN_DURATION_MIN) {
+      errors.time = "Thời gian đặt phòng tối thiểu là 1 giờ 30 phút.";
+    } else if (!ALLOWED_DURATIONS.includes(duration)) {
+      errors.time = "Phòng này chỉ được đặt 1 giờ 30 phút hoặc 2 giờ / lượt.";
+    } else {
+      // Check floor hours
+      const hours = FLOOR_HOURS[room.floor];
+      if (hours) {
+          const floorOpen = hours.open.split(':').map(Number);
+          const floorClose = hours.close.split(':').map(Number);
+          const startTotal = startMinutes[0] * 60 + startMinutes[1];
+          const endTotal = endMinutes[0] * 60 + endMinutes[1];
+          const openTotal = floorOpen[0] * 60 + floorOpen[1];
+          const closeTotal = floorClose[0] * 60 + floorClose[1];
 
-        if (startTotal < openTotal || endTotal > closeTotal) {
-            errors.time = `Tầng ${room.floor} chỉ mở cửa từ ${hours.open} đến ${hours.close}.`;
-        }
+          if (startTotal < openTotal || endTotal > closeTotal) {
+              errors.time = `Tầng ${room.floor} chỉ mở cửa từ ${hours.open} đến ${hours.close}.`;
+          }
+      }
     }
   }
 

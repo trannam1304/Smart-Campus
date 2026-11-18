@@ -34,4 +34,37 @@ public class BookingCheckinController {
         CheckinResponse result = checkinService.checkIn(request.getQrCode());
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
+
+    // ------------------------------------------------------------------
+    // Trả phòng sớm / Check-out kết thúc lượt đặt
+    // Body: { bookingId } hoặc PathVariable: /{id}/checkout
+    // ------------------------------------------------------------------
+    @PostMapping({"/check-out", "/checkout", "/{id}/checkout", "/{id}/check-out"})
+    public ResponseEntity<ApiResponse<CheckinResponse>> checkOut(
+            @PathVariable(required = false) Long id,
+            @RequestBody(required = false) java.util.Map<String, Object> body,
+            @RequestParam(required = false) Long bookingId) {
+
+        Long targetId = id;
+        if (targetId == null && bookingId != null) {
+            targetId = bookingId;
+        }
+        if (targetId == null && body != null) {
+            Object raw = body.get("bookingId");
+            if (raw == null) raw = body.get("id");
+            if (raw != null) {
+                String numeric = raw.toString().replaceAll("[^0-9]", "").trim();
+                if (!numeric.isEmpty()) {
+                    try {
+                        targetId = Long.parseLong(numeric);
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        if (targetId == null) {
+            throw new IllegalArgumentException("Thiếu bookingId để trả phòng.");
+        }
+        CheckinResponse result = checkinService.checkOut(targetId);
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
 }

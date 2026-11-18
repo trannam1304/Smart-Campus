@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 
 import com.smartcampus.backend.security.CustomUserDetailsService;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -81,12 +82,28 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+                // Xử lý lỗi xác thực và phân quyền (401 cho chưa xác thực, 403 cho không đủ quyền)
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"success\":false,\"code\":401,\"message\":\"Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.\",\"status\":401}");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"success\":false,\"code\":403,\"message\":\"Bạn không có quyền thực hiện thao tác này.\",\"status\":403}");
+                        })
+                )
+
                 // Phân quyền endpoint
                 .authorizeHttpRequests(auth -> auth
                         // Cho phép truy cập OPTIONS (CORS preflight)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Cho phép truy cập file ảnh upload tĩnh
+                        .requestMatchers("/uploads/**").permitAll()
                         // Auth public
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/v1/auth/**").permitAll()
                         // Tra cứu phòng, tòa nhà, sơ đồ tầng (Public Read)
                         .requestMatchers(HttpMethod.GET,
                                 "/api/rooms", "/api/rooms/**",
@@ -97,10 +114,18 @@ public class SecurityConfig {
                         // Swagger / OpenAPI public
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/webjars/**").permitAll()
+                        // Booking & Checkin: Sinh viên & Admin
+                        .requestMatchers("/api/bookings", "/api/bookings/**",
+                                "/api/v1/bookings", "/api/v1/bookings/**",
+                                "/api/checkin", "/api/checkin/**",
+                                "/api/v1/checkin", "/api/v1/checkin/**").hasAnyRole("STUDENT", "ADMIN", "STAFF", "ADMIN_STAFF")
+                        // Incidents: Sinh viên & Admin
+                        .requestMatchers("/api/incidents", "/api/incidents/**",
+                                "/api/v1/incidents", "/api/v1/incidents/**").hasAnyRole("STUDENT", "ADMIN", "STAFF", "ADMIN_STAFF")
                         // Admin only
-                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "STAFF", "ADMIN_STAFF")
+                        .requestMatchers("/api/admin/**", "/api/v1/admin/**").hasAnyRole("ADMIN", "STAFF", "ADMIN_STAFF")
                         // Student & Admin
-                        .requestMatchers("/api/student/**").hasAnyRole("STUDENT", "ADMIN", "STAFF", "ADMIN_STAFF")
+                        .requestMatchers("/api/student/**", "/api/v1/student/**").hasAnyRole("STUDENT", "ADMIN", "STAFF", "ADMIN_STAFF")
                         // Mọi request khác cần authentication
                         .anyRequest().authenticated()
                 )

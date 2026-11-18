@@ -215,4 +215,137 @@ describe('AdminDashboardPage - Tab INCIDENTS', () => {
       expect(screen.getByText(/Võ Minh Luân \(QTV\) \(STAFF-01\)/i)).toBeTruthy();
     });
   });
+
+  it('lọc danh sách sự cố theo trạng thái Chưa xử lý và Đã xử lý', async () => {
+    const multiIncidents = [
+      {
+        id: 'INC-OPEN-1',
+        roomId: 'r-103',
+        roomCode: 'L.103',
+        deviceName: 'Máy chiếu HDMI',
+        reporterName: 'Sinh viên 1',
+        description: 'Máy chiếu hỏng',
+        status: 'OPEN',
+        createdAt: '2026-09-25 10:15',
+      },
+      {
+        id: 'INC-RESOLVED-1',
+        roomId: 'r-201',
+        roomCode: 'L.201',
+        deviceName: 'Điều hòa Daikin',
+        reporterName: 'Sinh viên 2',
+        description: 'Điều hòa chảy nước đã sửa',
+        status: 'RESOLVED',
+        createdAt: '2026-09-24 15:30',
+      },
+    ];
+
+    vi.mocked(adminApi.getAdminDashboardDataApi).mockResolvedValueOnce({
+      success: true,
+      code: 200,
+      message: 'OK',
+      data: {
+        bookings: [],
+        incidents: multiIncidents,
+        kpis: {
+          totalBookingsToday: 0,
+          pendingApprovals: 0,
+          activeNow: 0,
+          openIncidents: 1,
+        },
+      },
+      timestamp: new Date().toISOString(),
+    });
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByText('Máy chiếu hỏng')).toBeTruthy();
+      expect(screen.getByText('Điều hòa chảy nước đã sửa')).toBeTruthy();
+    });
+
+    // Bấm nút "Chưa xử lý"
+    const openFilterBtn = screen.getByRole('button', { name: /Chưa xử lý/i });
+    fireEvent.click(openFilterBtn);
+
+    expect(screen.getByText('Máy chiếu hỏng')).toBeTruthy();
+    expect(screen.queryByText('Điều hòa chảy nước đã sửa')).toBeNull();
+
+    // Bấm nút "Đã xử lý"
+    const resolvedFilterBtn = screen.getByRole('button', { name: /Đã xử lý/i });
+    fireEvent.click(resolvedFilterBtn);
+
+    expect(screen.queryByText('Máy chiếu hỏng')).toBeNull();
+    expect(screen.getByText('Điều hòa chảy nước đã sửa')).toBeTruthy();
+
+    // Bấm "Tất cả sự cố"
+    const allFilterBtn = screen.getByRole('button', { name: /Tất cả sự cố/i });
+    fireEvent.click(allFilterBtn);
+
+    expect(screen.getByText('Máy chiếu hỏng')).toBeTruthy();
+    expect(screen.getByText('Điều hòa chảy nước đã sửa')).toBeTruthy();
+  });
+
+  it('lọc danh sách sự cố theo ô tìm kiếm và đặt lại bộ lọc', async () => {
+    const multiIncidents = [
+      {
+        id: 'INC-1',
+        roomId: 'r-103',
+        roomCode: 'L.103',
+        deviceName: 'Máy chiếu HDMI',
+        reporterName: 'Nguyễn Văn A',
+        description: 'Máy chiếu không lên nguồn',
+        status: 'OPEN',
+        createdAt: '2026-09-25 10:15',
+      },
+      {
+        id: 'INC-2',
+        roomId: 'r-505',
+        roomCode: 'L.505',
+        deviceName: 'Bàn ghế học tập',
+        reporterName: 'Trần Thị B',
+        description: 'Gãy chân bàn',
+        status: 'OPEN',
+        createdAt: '2026-09-24 15:30',
+      },
+    ];
+
+    vi.mocked(adminApi.getAdminDashboardDataApi).mockResolvedValueOnce({
+      success: true,
+      code: 200,
+      message: 'OK',
+      data: {
+        bookings: [],
+        incidents: multiIncidents,
+        kpis: {
+          totalBookingsToday: 0,
+          pendingApprovals: 0,
+          activeNow: 0,
+          openIncidents: 2,
+        },
+      },
+      timestamp: new Date().toISOString(),
+    });
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByText('Máy chiếu không lên nguồn')).toBeTruthy();
+      expect(screen.getByText('Gãy chân bàn')).toBeTruthy();
+    });
+
+    // Tìm kiếm theo "L.505"
+    const searchInput = screen.getByPlaceholderText(/Tìm theo phòng/i);
+    fireEvent.change(searchInput, { target: { value: 'L.505' } });
+
+    expect(screen.queryByText('Máy chiếu không lên nguồn')).toBeNull();
+    expect(screen.getByText('Gãy chân bàn')).toBeTruthy();
+
+    // Bấm nút Đặt lại
+    const resetBtn = screen.getByRole('button', { name: /Đặt lại/i });
+    fireEvent.click(resetBtn);
+
+    expect(screen.getByText('Máy chiếu không lên nguồn')).toBeTruthy();
+    expect(screen.getByText('Gãy chân bàn')).toBeTruthy();
+  });
 });

@@ -7,6 +7,7 @@ import com.smartcampus.backend.controller.RoomController;
 import com.smartcampus.backend.exception.GlobalExceptionHandler;
 import com.smartcampus.backend.security.JwtAuthFilter;
 import com.smartcampus.backend.service.RoomService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -43,9 +44,22 @@ class RoomControllerTest {
     private RoomService roomService;
 
     @MockBean
+    private com.smartcampus.backend.service.BookingService bookingService;
+
+    @MockBean
+    private com.smartcampus.backend.repository.BookingRepository bookingRepository;
+
+    @MockBean
+    private com.smartcampus.backend.repository.UserRepository userRepository;
+
+    @MockBean
+    private com.smartcampus.backend.service.CheckinService checkinService;
+
+    @MockBean
     private JwtAuthFilter jwtAuthFilter;
 
     @Test
+    @DisplayName("[FR-2.1] Tạo phòng và trả về cấu trúc Response Contract chuẩn")
     void createRoomReturnsContractEnvelopeAndCreatedStatus() throws Exception {
         ManagedRoomResponse room = new ManagedRoomResponse("ROOM-1", "A3.01", 1L, "Tòa A",
                 3, 8, "AVAILABLE", "GROUP",
@@ -73,6 +87,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @DisplayName("[FR-2.3 - Exception Flow] Từ chối tạo phòng khi sức chứa capacity <= 0 (Validation 400)")
     void createRoomRejectsInvalidCapacity() throws Exception {
         mockMvc.perform(post("/api/v1/rooms")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -95,6 +110,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @DisplayName("[FR-2.1 & FR-2.3] Tra cứu danh sách phòng học có phân trang (Pagination Envelope)")
     void listRoomsReturnsPaginationInContractEnvelope() throws Exception {
         when(roomService.getRooms(1, 10)).thenReturn(List.of());
         when(roomService.countRooms()).thenReturn(0L);
@@ -109,6 +125,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @DisplayName("[FR-2.1] Xem chi tiết thông tin phòng học theo mã phòng")
     void getRoomReturnsDetailInContractEnvelope() throws Exception {
         ManagedRoomResponse room = new ManagedRoomResponse("ROOM-1", "A3.01", 1L, "Tòa A",
                 3, 8, "AVAILABLE", "GROUP", List.of());
@@ -123,6 +140,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @DisplayName("[FR-2.1] Xóa phòng học thành công")
     void deleteRoomReturnsSuccess() throws Exception {
         doNothing().when(roomService).deleteRoom("ROOM-1");
 
@@ -135,6 +153,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @DisplayName("[FR-2.2] Lấy danh mục tòa nhà phục vụ sơ đồ mặt bằng tầng (Visual Floor Map)")
     void listBuildingsReturnsSuccess() throws Exception {
         when(roomService.getBuildings()).thenReturn(List.of());
 
@@ -146,6 +165,7 @@ class RoomControllerTest {
     }
 
     @Test
+    @DisplayName("[FR-4.1] Hiển thị danh mục thiết bị phần cứng trong phòng học")
     void listRoomEquipmentsReturnsSuccess() throws Exception {
         when(roomService.getRoomEquipments("ROOM-1")).thenReturn(List.of(
                 new EquipmentResponse("EQ-1", "Máy chiếu Sony", "PROJECTOR", "GOOD")));

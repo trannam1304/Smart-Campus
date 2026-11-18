@@ -5,20 +5,29 @@ import { QRModal } from '../../components/booking/QRModal';
 import { Toast } from '../../components/ui/Toast';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Room, DeviceCategory } from '../../types/booking';
-import { Search, Filter, Users, Bookmark, Calendar, Loader2, AlertCircle } from 'lucide-react';
+import { Search, Filter, Users, Bookmark, Calendar, Loader2, AlertCircle, Tv, Projector, Presentation, Armchair, Layers } from 'lucide-react';
 import { getRoomsApi } from '../../api/roomApi';
 import { getErrorMessage } from '../../api/errorMessages';
 import { getRoomColor } from '../../utils/roomColors';
 import { minOccupancy } from '../../utils/bookingValidation';
 
 const EQUIPMENT_OPTIONS: { id: DeviceCategory; label: string }[] = [
+  { id: 'TABLE_CHAIR', label: 'Bàn, ghế' },
+  { id: 'WHITEBOARD', label: 'Bảng kính' },
+  { id: 'TV', label: 'Smart TV' },
+  { id: 'SOFA', label: 'Ghế sofa' },
   { id: 'PROJECTOR', label: 'Máy chiếu' },
-  { id: 'TV', label: 'Smart TV/Màn hình' },
-  { id: 'WHITEBOARD', label: 'Bảng (từ/tương tác)' },
-  { id: 'AC', label: 'Điều hòa' },
-  { id: 'SOCKET', label: 'Ổ cắm điện' },
-  { id: 'AUDIO', label: 'Loa/Âm thanh' },
 ];
+
+const getDeviceIcon = (category?: DeviceCategory, name?: string) => {
+  const n = (name || '').toLowerCase();
+  const c = category || '';
+  if (c === 'SOFA' || n.includes('sofa')) return <Armchair className="w-3.5 h-3.5 text-amber-600 shrink-0" />;
+  if (c === 'PROJECTOR' || n.includes('máy chiếu') || n.includes('projector')) return <Projector className="w-3.5 h-3.5 text-indigo-600 shrink-0" />;
+  if (c === 'TV' || n.includes('tv') || n.includes('tivi')) return <Tv className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+  if (c === 'WHITEBOARD' || n.includes('bảng') || n.includes('whiteboard')) return <Presentation className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+  return <Layers className="w-3.5 h-3.5 text-slate-500 shrink-0" />;
+};
 
 export const SearchRoomsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,8 +99,8 @@ export const SearchRoomsPage: React.FC = () => {
   };
 
   const handleBookingSuccess = (booking: any) => {
-    if (booking.bookingStatus === 'PENDING_APPROVAL') {
-      setToastMessage('Đã gửi yêu cầu đặt phòng hội nghị thành công. Vui lòng chờ Quản trị viên phê duyệt.');
+    if (booking.bookingStatus === 'PENDING_APPROVAL' || booking.status === 'PENDING_APPROVAL') {
+      setToastMessage('Đã gửi yêu cầu đặt phòng thành công. Vui lòng chờ Quản trị viên/Quản lý phê duyệt.');
     } else {
       setQrData(booking);
     }
@@ -285,8 +294,8 @@ export const SearchRoomsPage: React.FC = () => {
           </div>
         ) : (
           rooms.map((room) => {
-            const minOcc = minOccupancy(room.capacity);
-            const statusColor = getRoomColor(room.status as any);
+            const minOcc = minOccupancy(room.capacity || 0);
+            const statusColor = getRoomColor((room.status || 'AVAILABLE') as any);
             return (
               <div
                 key={room.id}
@@ -311,13 +320,31 @@ export const SearchRoomsPage: React.FC = () => {
                         {room.roomType}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5" /> Sức chứa: {minOcc} - {room.capacity} người
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-1.5 font-medium flex-wrap">
+                      <span className="flex items-center gap-1 text-slate-700 shrink-0">
+                        <Users className="w-3.5 h-3.5 text-slate-400" /> Sức chứa: <strong className="text-slate-800">{minOcc} - {room.capacity} người</strong>
                       </span>
-                      <span className="hidden sm:inline">
-                        Thiết bị: {room.devices.map((d) => d.name).join(', ')}
-                      </span>
+                      {room.devices && room.devices.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {room.devices.map((d) => {
+                            const isGood = d.status === 'GOOD';
+                            return (
+                              <span
+                                key={d.id}
+                                className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md border ${
+                                  isGood
+                                    ? 'bg-slate-50 border-slate-200 text-slate-700'
+                                    : 'bg-rose-50 border-rose-200 text-rose-700 font-semibold'
+                                }`}
+                              >
+                                {getDeviceIcon(d.category, d.name)}
+                                <span>{d.name}</span>
+                                {!isGood && <span className="text-[10px] text-rose-600 font-bold">(Hỏng)</span>}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
