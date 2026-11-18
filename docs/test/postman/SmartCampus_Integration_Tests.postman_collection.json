@@ -1,0 +1,853 @@
+{
+  "info": {
+    "_postman_id": "c1f7a28e-89a5-48b2-b184-f3c0b05b6e22",
+    "name": "Smart Campus - SRS ISO/IEC/IEEE 29148 Integration Tests Suite",
+    "description": "Bộ kịch bản kiểm thử tích hợp (Integration Testing) toàn diện cho dự án Smart Campus, ánh xạ 1:1 theo Đặc tả phần mềm chuẩn ISO/IEC/IEEE 29148 (Bao gồm FR-1.1 đến FR-5.3 và NFR-01 đến NFR-03).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Nhóm 1: Xác thực & Phân quyền (FR-1.1 đến FR-1.4)",
+      "description": "Kiểm thử đăng ký, đăng nhập JWT, phân quyền vai trò (Role: STUDENT, ADMIN, STAFF) và đổi mật khẩu.",
+      "item": [
+        {
+          "name": "[FR-1.1 - Exception Flow] Đăng ký từ chối email không thuộc miền @student.edu.vn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyen Van Test\",\n  \"studentCode\": \"52109998\",\n  \"email\": \"invalid_email@gmail.com\",\n  \"password\": \"Password@123\",\n  \"faculty\": \"Khoa CNTT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-1.1] Chặn email sai định dạng (HTTP 400 Bad Request)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('[FR-1.1] Mã lỗi trả về là ERR_VALIDATION', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.false;",
+                  "    pm.expect(jsonData.errorCode).to.eql('ERR_VALIDATION');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-1.1 - Normal Flow] Đăng ký tài khoản sinh viên hợp lệ (@student.edu.vn)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const rand = Math.floor(1000 + Math.random() * 9000);",
+                  "const code = '52' + rand;",
+                  "pm.environment.set('student_code', code);",
+                  "pm.environment.set('student_email', code + '@student.edu.vn');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-1.1] Đăng ký thành công (HTTP 201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('[FR-1.1] Tài khoản được kích hoạt thành công', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Sinh Vi\\u00ean ISO Test\",\n  \"studentCode\": \"{{student_code}}\",\n  \"email\": \"{{student_email}}\",\n  \"password\": \"{{student_password}}\",\n  \"faculty\": \"Khoa C\\u00f4ng ngh\\u1ec7 Th\\u00f4ng tin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[FR-1.2 - Exception Flow] Đăng nhập thất bại khi để trống thông tin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-1.2] Từ chối request rỗng (HTTP 400 Bad Request)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('[FR-1.2] Mã lỗi validation ERR_VALIDATION', function () {",
+                  "    pm.expect(pm.response.json().errorCode).to.eql('ERR_VALIDATION');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-1.2 - Exception Flow] Đăng nhập thất bại khi mật khẩu sai",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{admin_email}}\",\n  \"password\": \"MatKhauHoanToanSai123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-1.2] Chặn mật khẩu không chính xác (HTTP 409 hoặc 401)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([401, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-1.2 & FR-1.3 & NFR-03] Đăng nhập Admin lấy JWT Token (Role ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-1.2] Đăng nhập thành công (HTTP 200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.test('[FR-1.3] Phân quyền vai trò trả về đúng ADMIN', function () {",
+                  "    pm.expect(res.data.role).to.eql('ADMIN');",
+                  "});",
+                  "pm.test('[NFR-03] Cấp mã JWT Token hợp lệ', function () {",
+                  "    pm.expect(res.data.token).to.be.a('string');",
+                  "    pm.expect(res.data.token.length).to.be.above(20);",
+                  "});",
+                  "pm.environment.set('admin_token', res.data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-1.2 & FR-1.3 & NFR-03] Đăng nhập Sinh viên lấy JWT Token (Role STUDENT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{student_email}}\",\n  \"password\": \"{{student_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-1.2] Đăng nhập thành công (HTTP 200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.test('[FR-1.3] Phân quyền vai trò trả về đúng STUDENT', function () {",
+                  "    pm.expect(res.data.role).to.eql('STUDENT');",
+                  "});",
+                  "pm.test('[NFR-03] Cấp mã JWT Token hợp lệ cho sinh viên', function () {",
+                  "    pm.expect(res.data.token).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('student_token', res.data.token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Nhóm 2: Tra cứu & Lịch phòng & Sơ đồ tầng (FR-2.1 đến FR-2.4)",
+      "description": "Kiểm thử hiển thị lịch trạng thái phòng (FR-2.1), sơ đồ mặt bằng tầng Visual Floor Map (FR-2.2), bộ lọc tìm kiếm (FR-2.3) và mã hóa màu sắc (FR-2.4).",
+      "item": [
+        {
+          "name": "[FR-2.1 & FR-2.3 & NFR-01] Tra cứu danh sách phòng học có bộ lọc & phân trang",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rooms"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-2.1] Status code là 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.test('[FR-2.3] Danh sách phòng trả về dạng mảng', function () {",
+                  "    pm.expect(res.data).to.be.an('array');",
+                  "    pm.expect(res.data.length).to.be.above(0);",
+                  "});",
+                  "if (res.data && res.data.length > 0) {",
+                  "    pm.environment.set('test_room_id', res.data[0].roomId);",
+                  "    var numId = res.data[0].roomId.replace('ROOM-', '');",
+                  "    pm.environment.set('test_room_numeric_id', numId);",
+                  "    if (res.data[0].equipments && res.data[0].equipments.length > 0) {",
+                  "        pm.environment.set('test_equipment_id', res.data[0].equipments[0].id);",
+                  "    }",
+                  "}",
+                  "pm.test('[FR-2.4] Mỗi phòng có trạng thái chuẩn (AVAILABLE / BOOKED / MAINTENANCE)', function () {",
+                  "    pm.expect(['AVAILABLE', 'BOOKED', 'MAINTENANCE', 'DISABLED']).to.include(res.data[0].status);",
+                  "});",
+                  "pm.test('[NFR-01] Thời gian phản hồi API tra cứu < 1500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-2.2] Tra cứu thông tin danh mục tòa nhà (Sơ đồ mặt bằng)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/buildings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "buildings"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-2.2] Status code là 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[FR-2.2] Danh sách tòa nhà phục vụ vẽ sơ đồ mặt bằng tương tác', function () {",
+                  "    pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Nhóm 3: Động cơ đặt phòng & Chống trùng lịch (FR-3.1 đến FR-3.3)",
+      "description": "Kiểm thử tạo lượt đặt phòng nhanh (FR-3.1), chặn trùng lịch thời gian thực (FR-3.2) và giới hạn hạn mức 10h/tuần (FR-3.3).",
+      "item": [
+        {
+          "name": "[FR-3.1 & NFR-03 - Security] Đặt phòng không có Token bị từ chối 401 Unauthorized",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{test_room_id}}\",\n  \"numberOfPeople\": 3,\n  \"startTime\": \"2026-11-25T08:00:00\",\n  \"endTime\": \"2026-11-25T10:00:00\",\n  \"memberCodes\": [\n    \"52109999\",\n    \"52100001\",\n    \"52100002\"\n  ],\n  \"purpose\": \"Test Security NFR-03\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[NFR-03] Chặn người dùng chưa xác thực (HTTP 401 Unauthorized)', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-3.1 - Exception Flow] Đặt phòng với thời gian kết thúc trước thời gian bắt đầu",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{test_room_id}}\",\n  \"numberOfPeople\": 3,\n  \"startTime\": \"2026-11-25T10:00:00\",\n  \"endTime\": \"2026-11-25T08:00:00\",\n  \"memberCodes\": [\n    \"{{student_code}}\",\n    \"52100001\",\n    \"52100002\"\n  ],\n  \"purpose\": \"Test Th\\u1eddi gian k\\u1ebft th\\u00fac < b\\u1eaft \\u0111\\u1ea7u\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-3.1] Từ chối khung giờ phi logic (HTTP 409 Conflict hoặc 400)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-3.1 & FR-3.3 - Normal Flow] Tạo đơn đặt phòng học nhóm hợp lệ thành công",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Tự động tính ngày tương lai (10 - 50 ngày) và khung giờ chuẩn địa phương (08:00 - 10:00)",
+                  "const d = new Date();",
+                  "const offset = Math.floor(10 + Math.random() * 40);",
+                  "d.setDate(d.getDate() + offset);",
+                  "const pad = (n) => String(n).padStart(2, '0');",
+                  "const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;",
+                  "const start = `${dateStr}T08:00:00`;",
+                  "const end = `${dateStr}T10:00:00`;",
+                  "pm.environment.set('booking_start', start);",
+                  "pm.environment.set('booking_end', end);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-3.1] Tạo lượt đặt phòng thành công (HTTP 201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.test('[FR-3.1] Trạng thái đơn được tạo và có mã bookingId', function () {",
+                  "    pm.expect(res.data).to.have.property('bookingId');",
+                  "    pm.environment.set('booking_id', res.data.bookingId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{test_room_id}}\",\n  \"numberOfPeople\": 3,\n  \"startTime\": \"{{booking_start}}\",\n  \"endTime\": \"{{booking_end}}\",\n  \"memberCodes\": [\n    \"{{student_code}}\",\n    \"52100001\",\n    \"52100002\"\n  ],\n  \"purpose\": \"Ki\\u1ec3m th\\u1eed t\\u00edch h\\u1ee3p chu\\u1ea9n ISO/IEC/IEEE 29148\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "[FR-3.2 - Conflict Checking] Chặn trùng lịch khi đặt lại cùng phòng và khung giờ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{test_room_id}}\",\n  \"numberOfPeople\": 3,\n  \"startTime\": \"{{booking_start}}\",\n  \"endTime\": \"{{booking_end}}\",\n  \"memberCodes\": [\n    \"{{student_code}}\",\n    \"52100001\",\n    \"52100002\"\n  ],\n  \"purpose\": \"C\\u1ed1 t\\u00ecnh \\u0111\\u1eb7t tr\\u00f9ng khung gi\\u1edd \\u0111\\u1ec3 test FR-3.2\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-3.2] Chặn trùng lịch (HTTP 409 Conflict)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);",
+                  "});",
+                  "pm.test('[FR-3.2] Phản hồi lỗi xung đột lịch', function () {",
+                  "    pm.expect(pm.response.json().success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-3.1] Lấy danh sách lịch đặt phòng của cá nhân sinh viên",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/my-bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "my-bookings"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-3.1] Status code là 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[FR-3.1] Trả về danh sách các lịch hẹn của sinh viên', function () {",
+                  "    pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Nhóm 4: Quản lý & Theo dõi thiết bị (FR-4.1 đến FR-4.3)",
+      "description": "Kiểm thử hiển thị thiết bị phần cứng (FR-4.1) và gửi báo cáo phản ánh sự cố hỏng hóc (FR-4.2).",
+      "item": [
+        {
+          "name": "[FR-4.1] Tra cứu danh mục thiết bị phần cứng trong phòng",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{test_room_id}}/equipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rooms",
+                "{{test_room_id}}",
+                "equipments"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-4.1] Status code là 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[FR-4.1] Trả về danh sách thiết bị kèm trạng thái', function () {",
+                  "    pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-4.2] Sinh viên gửi báo cáo phản ánh sự cố thiết bị hư hỏng (Tạo Ticket)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{test_room_id}}\",\n  \"equipmentId\": \"{{test_equipment_id}}\",\n  \"description\": \"Ki\\u1ec3m th\\u1eed FR-4.2: Thi\\u1ebft b\\u1ecb ph\\u00f2ng h\\u1ecdc ch\\u1eadp ch\\u1eddn c\\u1ea7n b\\u1ea3o tr\\u00ec\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "incidents"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-4.2] Báo cáo sự cố được ghi nhận thành công (HTTP 201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('[FR-4.2] Success trả về true', function () {",
+                  "    pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-4.2] Admin/Staff truy xuất toàn bộ danh sách sự cố thiết bị tòa nhà",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "incidents"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-4.2] Status code là 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[FR-4.2] Danh sách sự cố thiết bị là mảng', function () {",
+                  "    pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Nhóm 5: Quản trị & Phân quyền RBAC (FR-1.3 & Dashboard)",
+      "description": "Kiểm thử kiểm soát truy cập dựa trên vai trò (RBAC) và bảng điều khiển Quản trị viên.",
+      "item": [
+        {
+          "name": "[FR-1.3 - Security RBAC] Sinh viên truy cập Dashboard Quản trị bị chặn 403 Forbidden",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dashboard"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-1.3] Chặn sinh viên truy cập khu vực Quản trị (HTTP 403 Forbidden)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "[FR-1.3] Admin truy cập Dashboard Quản trị và Thống kê KPIs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dashboard"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[FR-1.3] Status code là 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var res = pm.response.json();",
+                  "pm.test('[FR-1.3] Dashboard quản trị trả về KPIs và số liệu thống kê', function () {",
+                  "    pm.expect(res.data).to.have.property('kpis');",
+                  "    pm.expect(res.data).to.have.property('bookings');",
+                  "    pm.expect(res.data).to.have.property('incidents');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -69,8 +69,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex) {
-        logger.error("Lỗi không xử lý được khi gọi API.", ex);
-        return response(HttpStatus.INTERNAL_SERVER_ERROR, "ERR_INTERNAL", "Đã có lỗi xảy ra.");
+        logger.error("Lỗi không xử lý được khi gọi API: " + ex.getMessage(), ex);
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, "ERR_INTERNAL",
+                ex.getMessage() != null ? ex.getMessage() : "Đã có lỗi xảy ra trên hệ thống.");
     }
 
     private ResponseEntity<ApiResponse<Void>> response(HttpStatus status, String errorCode, String message) {

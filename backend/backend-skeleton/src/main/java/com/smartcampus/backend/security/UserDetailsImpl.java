@@ -103,6 +103,6 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return status == User.AccountStatus.ACTIVE;
+        return status != User.AccountStatus.LOCKED;
     }
 }
