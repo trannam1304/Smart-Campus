@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import { InteractiveFloorPlan } from './InteractiveFloorPlan';
 import { FloorData } from '../../types/booking';
 
@@ -105,6 +105,10 @@ describe('InteractiveFloorPlan', () => {
     });
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   it('renders in normal mode: no <img> tag, room rect count equals room count, and has "Thang máy" text', async () => {
     const { container } = render(
       <InteractiveFloorPlan
@@ -162,5 +166,33 @@ describe('InteractiveFloorPlan', () => {
       expect.any(String),
       expect.any(String),
     );
+  });
+
+  it('flips room popover upward when room is near the bottom of the viewport', async () => {
+    Object.defineProperty(window, 'innerHeight', { value: 700, configurable: true });
+    Object.defineProperty(window, 'innerWidth', { value: 420, configurable: true });
+
+    const { container } = render(
+      <InteractiveFloorPlan
+        floorId="3"
+        onBookRoom={onBookRoomMock}
+        onViewSchedule={onViewScheduleMock}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('L.304')).toBeTruthy();
+    });
+
+    const roomRect = container.querySelector('rect[aria-label="Phòng L.304 – Trống"]') as SVGRectElement;
+    expect(roomRect).not.toBeNull();
+    roomRect.getBoundingClientRect = () =>
+      ({ left: 100, top: 560, bottom: 670, right: 260, width: 160, height: 110, x: 100, y: 560, toJSON: () => {} } as DOMRect);
+
+    fireEvent.click(roomRect);
+
+    const dialog = await screen.findByRole('dialog', { name: /Thông tin phòng L.304/i });
+    expect(dialog.style.bottom).not.toBe('');
+    expect(dialog.style.top).toBe('');
   });
 });

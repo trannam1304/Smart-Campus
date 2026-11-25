@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 
 interface ToastProps {
@@ -18,7 +19,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'success', duratio
     }
   }, [message, duration, onClose]);
 
-  return (
+  const toastContent = (
     <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-sm font-medium transition-all transform animate-slide-up ${
       type === 'success' 
         ? 'bg-emerald-900 text-emerald-50 border-emerald-700' 
@@ -39,4 +40,6 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'success', duratio
       </button>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(toastContent, document.body) : toastContent;
 };

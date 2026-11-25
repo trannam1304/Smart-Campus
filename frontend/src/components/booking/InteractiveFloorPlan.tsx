@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { FloorData, Room } from '../../types/booking';
 import { StatusBadge } from '../ui/StatusBadge';
 import { Bookmark, Users, Monitor, Copy, Calendar, Clock, RefreshCw, AlertCircle } from 'lucide-react';
@@ -83,6 +84,39 @@ interface DraftRect {
   h: number;
 }
 
+interface PopoverPlacement {
+  left: number;
+  top?: number;
+  bottom?: number;
+  maxHeight: number;
+}
+
+const computePopoverPlacement = (rect: DOMRect): PopoverPlacement => {
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 768;
+  const halfWidth = 152;
+  const left = Math.min(Math.max(rect.left + rect.width / 2, halfWidth), Math.max(halfWidth, vw - halfWidth));
+  const spaceBelow = vh - rect.bottom - 16;
+  const spaceAbove = rect.top - 16;
+  const preferredHeight = 290;
+
+  if (spaceBelow >= preferredHeight || spaceBelow >= spaceAbove) {
+    const top = Math.max(12, Math.min(rect.bottom + 8, Math.max(12, vh - 220)));
+    return {
+      left,
+      top,
+      maxHeight: Math.max(180, vh - top - 16),
+    };
+  }
+
+  const bottom = Math.max(16, Math.min(vh - rect.top + 8, Math.max(16, vh - 220)));
+  return {
+    left,
+    bottom,
+    maxHeight: Math.max(180, vh - bottom - 16),
+  };
+};
+
 /* ================================================================
    InteractiveFloorPlan
    ================================================================ */
@@ -100,7 +134,7 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
 }) => {
   /* ---------- state ---------- */
   const [hoveredRoom, setHoveredRoom] = useState<Room | null>(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [tooltipPos, setTooltipPos] = useState<PopoverPlacement>({ left: 160, top: 100, maxHeight: 400 });
   const [floor, setFloor] = useState<FloorData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -286,8 +320,7 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
     }
     setHoveredRoom(room);
     const target = e.currentTarget as HTMLElement;
-    const bbox = target.getBoundingClientRect();
-    setTooltipPos({ x: bbox.left + bbox.width / 2, y: bbox.top + bbox.height + 10 });
+    setTooltipPos(computePopoverPlacement(target.getBoundingClientRect()));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, room: Room) => {
@@ -304,33 +337,30 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
       return;
     }
     setHoveredRoom(room);
-    const svgRect = (e.currentTarget as SVGRectElement).getBoundingClientRect();
-    setTooltipPos({ x: svgRect.left + svgRect.width / 2, y: svgRect.top + svgRect.height + 10 });
+    setTooltipPos(computePopoverPlacement((e.currentTarget as SVGRectElement).getBoundingClientRect()));
   };
 
   const handleSvgRectKeyDown = (room: Room, e: React.KeyboardEvent<SVGRectElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      const svgRect = (e.currentTarget as SVGRectElement).getBoundingClientRect();
       if (isCalibrateMode) {
         setSelectedRoomCode(room.roomCode);
         return;
       }
       setHoveredRoom(room);
-      setTooltipPos({ x: svgRect.left + svgRect.width / 2, y: svgRect.top + svgRect.height + 10 });
+      setTooltipPos(computePopoverPlacement((e.currentTarget as SVGRectElement).getBoundingClientRect()));
     }
   };
 
   /* ---------- touch handler ---------- */
   const handleSvgRectTouch = (room: Room, e: React.TouchEvent<SVGRectElement>) => {
     e.preventDefault();
-    const svgRect = (e.currentTarget as SVGRectElement).getBoundingClientRect();
     if (isCalibrateMode) {
       setSelectedRoomCode(room.roomCode);
       return;
     }
     setHoveredRoom(room);
-    setTooltipPos({ x: svgRect.left + svgRect.width / 2, y: svgRect.top + svgRect.height + 10 });
+    setTooltipPos(computePopoverPlacement((e.currentTarget as SVGRectElement).getBoundingClientRect()));
   };
 
   /* ---------- render: loading ---------- */
@@ -501,27 +531,27 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
             className="datetime-input"
           />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-2">
           <button
             onClick={() => fetchData(true)}
-            className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 disabled:opacity-50 whitespace-nowrap shrink-0"
             disabled={isRefreshing}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? 'Đang làm mới...' : 'Làm mới'}</span>
           </button>
-          <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider">
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-emerald-500" /> Trống
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] font-bold uppercase tracking-wider">
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 shrink-0" /> Trống
             </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-rose-500" /> Đã Đặt
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              <span className="w-3 h-3 rounded-full bg-rose-500 shrink-0" /> Đã Đặt
             </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-amber-500" /> Bảo Trì
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              <span className="w-3 h-3 rounded-full bg-amber-500 shrink-0" /> Bảo Trì
             </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-blue-500" /> Bạn Đặt
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              <span className="w-3 h-3 rounded-full bg-blue-500 shrink-0" /> Bạn Đặt
             </div>
           </div>
         </div>
@@ -759,14 +789,6 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
                   onClick={(e) => handleSvgRectClick(room, e)}
                   onKeyDown={(e) => handleSvgRectKeyDown(room, e)}
                   onTouchEnd={(e) => handleSvgRectTouch(room, e)}
-                  onMouseEnter={(e) => {
-                    const r = (e.currentTarget as SVGRectElement).getBoundingClientRect();
-                    setTooltipPos({ x: r.left + r.width / 2, y: r.top - 8 });
-                  }}
-                  onFocus={(e) => {
-                    const r = (e.currentTarget as SVGRectElement).getBoundingClientRect();
-                    setTooltipPos({ x: r.left + r.width / 2, y: r.top - 8 });
-                  }}
                 />
 
                 {/* Room code label: centered horizontally & vertically */}
@@ -789,119 +811,120 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
         </svg>
       </div>
 
-      {/* Floating tooltip (hover/focus only, no room code text on the map) */}
-      {hoveredRoom && !isCalibrateMode && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-transparent"
-            onClick={() => setHoveredRoom(null)}
-          />
-          <div
-            style={{
-              position: 'fixed',
-              left: `${Math.min(Math.max(tooltipPos.x, 150), window.innerWidth - 150)}px`,
-              top: `${tooltipPos.y}px`,
-              transform: 'translate(-50%, 0)',
-            }}
-            className="z-50 w-72 bg-white text-slate-900 p-4 rounded-2xl shadow-2xl border border-slate-200 animate-fade-in pointer-events-auto space-y-3"
-          >
-            <div className="flex items-center justify-between">
-              <h4 className="font-black text-sm">{hoveredRoom.roomCode}</h4>
-              <StatusBadge status={hoveredRoom.status} />
-            </div>
-
-            <div className="text-xs space-y-1 text-slate-600 font-medium">
-              <div className="font-bold text-slate-800">{hoveredRoom.roomType}</div>
-              <div className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-blue-600" />
-                <span>
-                  Sức chứa: {minOccupancy(hoveredRoom.capacity)} - {hoveredRoom.capacity} người
-                </span>
+      {/* Floating tooltip (portal + auto-flip trong viewport) */}
+      {hoveredRoom && !isCalibrateMode && (() => {
+        const popoverNode = (
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-transparent"
+              onClick={() => setHoveredRoom(null)}
+            />
+            <div
+              role="dialog"
+              aria-label={`Thông tin phòng ${hoveredRoom.roomCode}`}
+              style={{
+                position: 'fixed',
+                left: `${tooltipPos.left}px`,
+                ...(tooltipPos.top !== undefined ? { top: `${tooltipPos.top}px` } : {}),
+                ...(tooltipPos.bottom !== undefined ? { bottom: `${tooltipPos.bottom}px` } : {}),
+                maxHeight: `${tooltipPos.maxHeight}px`,
+                transform: 'translateX(-50%)',
+              }}
+              className="z-50 w-72 overflow-y-auto bg-white text-slate-900 p-4 rounded-2xl shadow-2xl border border-slate-200 animate-fade-in pointer-events-auto space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-sm">{hoveredRoom.roomCode}</h4>
+                <StatusBadge status={hoveredRoom.status} />
               </div>
-              <div className="flex items-start gap-1.5">
-                <Monitor className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
-                <span className="flex-1">
-                  Thiết bị:{' '}
-                  {hoveredRoom.devices && hoveredRoom.devices.length > 0
-                    ? hoveredRoom.devices.map((d) => (d.status === 'GOOD' ? d.name : `${d.name} (Hỏng)`)).join(', ')
-                    : 'Không có'}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-blue-600" />
-                <span>
-                  Giờ mở cửa: {(floor?.floorNumber ?? 0) <= 2 ? '07:30 - 20:00' : '07:30 - 17:00'}
-                </span>
-              </div>
-            </div>
 
-            {hoveredRoom.status === 'AVAILABLE' && (
-              <button
-                onClick={() => {
-                  setHoveredRoom(null);
-                  onBookRoom(hoveredRoom, selectedDate, selectedTime);
-                }}
-                className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-              >
-                <Bookmark className="w-3.5 h-3.5" />
-                <span>Đặt phòng này</span>
-              </button>
-            )}
-
-            {hoveredRoom.status === 'BOOKED' && (
-              <div className="space-y-2">
-                <div className="text-[10px] text-rose-600 font-bold bg-rose-50 p-2 rounded-lg border border-rose-100 text-center">
-                  Phòng đã có người đặt trong khung giờ này
+              <div className="text-xs space-y-1 text-slate-600 font-medium">
+                <div className="font-bold text-slate-800">{hoveredRoom.roomType}</div>
+                <div className="flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-blue-600" />
+                  <span>
+                    Sức chứa: {minOccupancy(hoveredRoom.capacity)} - {hoveredRoom.capacity} người
+                  </span>
                 </div>
-                {onViewSchedule && (
-                  <button
-                    onClick={() => {
-                      setHoveredRoom(null);
-                      onViewSchedule(hoveredRoom);
-                    }}
-                    className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>Xem lịch bận để chọn giờ khác</span>
-                  </button>
-                )}
-              </div>
-            )}
-
-            {hoveredRoom.status === 'SELF_BOOKED' && (
-              <div className="space-y-2">
-                <div className="text-[10px] text-blue-700 font-bold bg-blue-50 p-2 rounded-lg border border-blue-200 text-center">
-                  Bạn đã đặt phòng này trong khung giờ này
+                <div className="flex items-start gap-1.5">
+                  <Monitor className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                  <span className="flex-1">
+                    Thiết bị:{' '}
+                    {hoveredRoom.devices && hoveredRoom.devices.length > 0
+                      ? hoveredRoom.devices.map((d) => (d.status === 'GOOD' ? d.name : `${d.name} (Hỏng)`)).join(', ')
+                      : 'Không có'}
+                  </span>
                 </div>
-                {onViewSchedule && (
-                  <button
-                    onClick={() => {
-                      setHoveredRoom(null);
-                      onViewSchedule(hoveredRoom);
-                    }}
-                    className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-blue-100 hover:bg-blue-200 text-blue-800 flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>Xem chi tiết lịch đặt</span>
-                  </button>
-                )}
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-blue-600" />
+                  <span>
+                    Giờ mở cửa: {(floor?.floorNumber ?? 0) <= 2 ? '07:30 - 20:00' : '07:30 - 17:00'}
+                  </span>
+                </div>
               </div>
-            )}
 
-            {hoveredRoom.status === 'MAINTENANCE' && (
-              <div className="text-[10px] text-amber-700 font-bold bg-amber-50 p-2 rounded-lg border border-amber-200 text-center">
-                Phòng đang bảo trì. Xin lỗi vì sự bất tiện này.
-              </div>
-            )}
+              {hoveredRoom.status === 'AVAILABLE' && (
+                <button
+                  onClick={() => {
+                    setHoveredRoom(null);
+                    onBookRoom(hoveredRoom, selectedDate, selectedTime);
+                  }}
+                  className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  <span>Đặt phòng này</span>
+                </button>
+              )}
 
-            {hoveredRoom.status === 'SELF_BOOKED' && (
-              <div className="text-[10px] text-blue-700 font-bold bg-blue-50 p-2 rounded-lg border border-blue-200 text-center">
-                Bạn đã đặt phòng này vào khung giờ này.
-              </div>
-            )}
-          </div>
-        </>
-      )}
+              {hoveredRoom.status === 'BOOKED' && (
+                <div className="space-y-2">
+                  <div className="text-[10px] text-rose-600 font-bold bg-rose-50 p-2 rounded-lg border border-rose-100 text-center">
+                    Phòng đã có người đặt trong khung giờ này
+                  </div>
+                  {onViewSchedule && (
+                    <button
+                      onClick={() => {
+                        setHoveredRoom(null);
+                        onViewSchedule(hoveredRoom);
+                      }}
+                      className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Xem lịch bận để chọn giờ khác</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {hoveredRoom.status === 'SELF_BOOKED' && (
+                <div className="space-y-2">
+                  <div className="text-[10px] text-blue-700 font-bold bg-blue-50 p-2 rounded-lg border border-blue-200 text-center">
+                    Bạn đã đặt phòng này trong khung giờ này
+                  </div>
+                  {onViewSchedule && (
+                    <button
+                      onClick={() => {
+                        setHoveredRoom(null);
+                        onViewSchedule(hoveredRoom);
+                      }}
+                      className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-blue-100 hover:bg-blue-200 text-blue-800 flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Xem chi tiết lịch đặt</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {hoveredRoom.status === 'MAINTENANCE' && (
+                <div className="text-[10px] text-amber-700 font-bold bg-amber-50 p-2 rounded-lg border border-amber-200 text-center">
+                  Phòng đang bảo trì. Xin lỗi vì sự bất tiện này.
+                </div>
+              )}
+            </div>
+          </>
+        );
+        return typeof document !== 'undefined' ? createPortal(popoverNode, document.body) : popoverNode;
+      })()}
     </div>
   );
 };

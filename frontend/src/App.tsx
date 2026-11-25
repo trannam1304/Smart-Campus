@@ -18,7 +18,7 @@ const AnimatedPageContainer: React.FC = () => {
   const location = useLocation();
   return (
     <main className="flex-1">
-      <div key={location.pathname} className="animate-fade-in-up">
+      <div key={location.pathname} className="animate-fade-in">
         <AppRoutes />
       </div>
     </main>

@@ -81,4 +81,18 @@ describe('Modal component', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('portals overlay directly into document.body so parent transform containers cannot trap it', () => {
+    const { container } = render(
+      <div style={{ transform: 'translateY(0)' }}>
+        <Modal isOpen={true} onClose={() => {}} title="Portal Test">
+          <p>Inside portal</p>
+        </Modal>
+      </div>
+    );
+
+    const dialog = screen.getByRole('dialog');
+    expect(container.contains(dialog)).toBe(false);
+    expect(dialog.parentElement?.parentElement).toBe(document.body);
+  });
 });
