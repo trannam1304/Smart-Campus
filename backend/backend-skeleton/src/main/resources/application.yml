@@ -3,6 +3,18 @@ spring:
     name: smart-campus-backend
   profiles:
     active: tidb   # Đổi từ 'mysql' sang 'tidb'
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:smartcampus.notification@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
   jpa:
     hibernate:
       ddl-auto: none
@@ -26,6 +38,12 @@ app:
     weekly-quota-hours: 10     # FR-3.3
     auto-release-minutes: 15   # FR-5.3
     checkin-early-limit-minutes: 15   # FR-5.2
+    reminder-lead-minutes: 15  # FR-6.2: Gửi thư nhắc hẹn trước 15 phút
+
+  mail:
+    from: ${SPRING_MAIL_USERNAME:smartcampus.notification@gmail.com}
+    sender-name: "Smart Campus Facility Reservation"
+    enabled: ${APP_MAIL_ENABLED:true}
 
 logging:
   level:

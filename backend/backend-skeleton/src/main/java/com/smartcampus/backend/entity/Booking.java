@@ -68,6 +68,9 @@ public class Booking extends BaseEntity {
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
+    @Column(name = "reminder_sent")
+    private Boolean reminderSent = false;
+
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BookingMember> bookingMembers = new ArrayList<>();
 

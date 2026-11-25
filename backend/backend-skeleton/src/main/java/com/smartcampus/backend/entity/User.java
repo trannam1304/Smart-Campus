@@ -50,6 +50,12 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private AccountStatus status; // ACTIVE / LOCKED / PENDING - FR-1.2
 
+    @Column(name = "no_show_count")
+    private Integer noShowCount = 0;
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
     @Column(name = "verification_token")
     private String verificationToken; // mã xác thực email (FR-1.1)
 

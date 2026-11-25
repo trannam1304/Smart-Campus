@@ -100,4 +100,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("statuses") List<BookingStatus> statuses);
 
     List<Booking> findAllByOrderByStartTimeDesc();
+
+    // ------------------------------------------------------------------
+    // FR-6.2: Tìm booking sắp đến giờ cần gửi email nhắc nhở
+    // ------------------------------------------------------------------
+    @Query("SELECT b FROM Booking b JOIN FETCH b.user u JOIN FETCH b.room r WHERE b.status = :status AND (b.reminderSent = false OR b.reminderSent IS NULL) AND b.startTime >= :windowStart AND b.startTime <= :windowEnd")
+    List<Booking> findBookingsNeedingReminder(
+            @Param("status") BookingStatus status,
+            @Param("windowStart") LocalDateTime windowStart,
+            @Param("windowEnd") LocalDateTime windowEnd);
 }

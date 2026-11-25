@@ -90,6 +90,12 @@
             <version>3.5.3</version>
         </dependency>
 
+        <!-- Spring Mail (FR-6.1, FR-6.2, FR-6.3) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- API docs -->
         <dependency>
             <groupId>org.springdoc</groupId>

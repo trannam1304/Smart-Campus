@@ -16,7 +16,9 @@ import com.smartcampus.backend.repository.UserRepository;
 import com.smartcampus.backend.security.JwtTokenProvider;
 import com.smartcampus.backend.service.BookingService;
 import com.smartcampus.backend.service.EmailService;
+import com.smartcampus.backend.service.QrCodeService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -56,6 +58,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class BookingServiceImpl implements BookingService {
 
     private static final ZoneId TZ = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -72,6 +75,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMemberRepository bookingMemberRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
+    private final QrCodeService qrCodeService;
     private final PasswordEncoder passwordEncoder;
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -183,7 +187,26 @@ public class BookingServiceImpl implements BookingService {
         }
 
         if (booking.getStatus() == BookingStatus.CONFIRMED && owner != null && owner.getEmail() != null) {
-            emailService.sendBookingConfirmation(owner.getEmail(), booking.getQrCode(), null);
+            byte[] qrBytes = null;
+            if (booking.getQrCode() != null) {
+                try {
+                    qrBytes = qrCodeService.generateQrImage(booking.getQrCode(), 240, 240);
+                } catch (Exception ex) {
+                    log.error("Không thể tạo ảnh QR cho booking id={}: {}", booking.getId(), ex.getMessage());
+                }
+            }
+            emailService.sendBookingConfirmationEmail(
+                    owner.getEmail(),
+                    owner.getFullName(),
+                    booking.getId(),
+                    room.getRoomCode(),
+                    booking.getStartTime(),
+                    booking.getEndTime(),
+                    booking.getNumberOfPeople(),
+                    booking.getPurpose(),
+                    qrBytes,
+                    booking.getQrCode()
+            );
         }
 
         return toResponse(booking);

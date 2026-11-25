@@ -1,42 +1,69 @@
 package com.smartcampus.backend.service;
 
-import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 
 /**
- * Dịch vụ gửi email. Trong môi trường phát triển, implementation này chỉ GHI LOG
- * nội dung email (mã OTP, liên kết xác thực) thay vì gửi thực tế, vì hệ thống
- * chưa cấu hình SMTP. Khi triển khai thật, bổ sung Spring Mail và triển khai lại.
- * Liên quan: FR-1.1 (kích hoạt tài khoản), FR-1.4 (OTP quên mật khẩu).
+ * Dịch vụ gửi Email thông báo và nhắc lịch cho hệ thống Smart Campus.
+ * Nghiệp vụ liên quan: FR-6.1 (Xác nhận đặt phòng kèm QR), FR-6.2 (Nhắc lịch hẹn 15m),
+ * FR-6.3 (Cảnh báo hủy lịch tự động do quá hạn), NFR-01 (Bất đồng bộ @Async)
  */
-@Service
-public class EmailService {
+public interface EmailService {
 
-    public void sendVerificationEmail(String to, String token) {
-        // TODO: Thay bằng SMTP gửi email thực tế khi triển khai production
-        System.out.println("==============================================");
-        System.out.println("[EMAIL SERVICE] Gửi email xác thực đăng ký");
-        System.out.println("Người nhận: " + to);
-        System.out.println("Mã xác thực: " + token);
-        System.out.println("Liên kết xác thực: http://localhost:8088/api/auth/verify-email?token=" + token);
-        System.out.println("==============================================");
-    }
+    /**
+     * FR-6.1 & FR-5.1: Gửi email xác nhận đặt phòng thành công kèm mã QR đính kèm/inline.
+     */
+    void sendBookingConfirmationEmail(
+            String toEmail,
+            String recipientName,
+            Long bookingId,
+            String roomCode,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            int numberOfPeople,
+            String purpose,
+            byte[] qrImageBytes,
+            String qrCodeData
+    );
 
-    public void sendOtpEmail(String to, String otpCode) {
-        // TODO: Thay bằng SMTP gửi email thực tế khi triển khai production
-        System.out.println("==============================================");
-        System.out.println("[EMAIL SERVICE] Gửi mã OTP khôi phục mật khẩu");
-        System.out.println("Người nhận: " + to);
-        System.out.println("Mã OTP: " + otpCode);
-        System.out.println("Hiệu lực: 5 phút");
-        System.out.println("==============================================");
-    }
+    /**
+     * FR-6.2: Gửi email nhắc lịch hẹn trước 15 phút đến giờ check-in.
+     */
+    void sendBookingReminderEmail(
+            String toEmail,
+            String recipientName,
+            Long bookingId,
+            String roomCode,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            byte[] qrImageBytes
+    );
 
-    public void sendBookingConfirmation(String to, String bookingCode, String qrImageUrl) {
-        System.out.println("==============================================");
-        System.out.println("[EMAIL SERVICE] Gửi thông báo xác nhận đặt phòng");
-        System.out.println("Người nhận: " + to);
-        System.out.println("Mã đặt phòng: " + bookingCode);
-        System.out.println("QR code: " + qrImageUrl);
-        System.out.println("==============================================");
-    }
+    /**
+     * FR-6.3 & FR-5.3: Gửi email cảnh báo hủy lịch tự động do quá hạn check-in (Auto-release).
+     */
+    void sendAutoCancelEmail(
+            String toEmail,
+            String recipientName,
+            Long bookingId,
+            String roomCode,
+            LocalDateTime startTime,
+            int graceMinutes,
+            int noShowCount,
+            boolean isLocked
+    );
+
+    /**
+     * Gửi email xác thực tài khoản (FR-1.1).
+     */
+    void sendVerificationEmail(String to, String token);
+
+    /**
+     * Gửi mã OTP khôi phục mật khẩu (FR-1.4).
+     */
+    void sendOtpEmail(String to, String otpCode);
+
+    /**
+     * Phương thức tương thích ngược gửi thông báo đặt phòng.
+     */
+    void sendBookingConfirmation(String to, String bookingCode, String qrImageUrl);
 }

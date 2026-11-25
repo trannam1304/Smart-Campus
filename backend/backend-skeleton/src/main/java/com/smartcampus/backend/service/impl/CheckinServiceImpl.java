@@ -9,7 +9,9 @@ import com.smartcampus.backend.exception.ResourceNotFoundException;
 import com.smartcampus.backend.repository.BookingRepository;
 import com.smartcampus.backend.repository.RoomRepository;
 import com.smartcampus.backend.service.CheckinService;
+import com.smartcampus.backend.service.EmailService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class CheckinServiceImpl implements CheckinService {
 
     // Cửa sổ check-in: 15 phút trước và 15 phút sau giờ hẹn (P-EARLY-IN / P-LATE-IN / P-GRACE)
@@ -44,6 +47,7 @@ public class CheckinServiceImpl implements CheckinService {
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
+    private final EmailService emailService;
 
     @Override
     public CheckinResponse checkIn(String qrCode) {
@@ -135,6 +139,26 @@ public class CheckinServiceImpl implements CheckinService {
         if (booking.getStatus() == BookingStatus.CONFIRMED && now.isAfter(latestCheckin)) {
             booking.setStatus(BookingStatus.CANCELLED_AUTO);
             bookingRepository.save(booking);
+
+            if (booking.getUser() != null && booking.getUser().getEmail() != null) {
+                try {
+                    int noShow = booking.getUser().getNoShowCount() != null ? booking.getUser().getNoShowCount() : 1;
+                    boolean isLocked = booking.getUser().getStatus() == com.smartcampus.backend.entity.User.AccountStatus.LOCKED;
+                    emailService.sendAutoCancelEmail(
+                            booking.getUser().getEmail(),
+                            booking.getUser().getFullName(),
+                            booking.getId(),
+                            booking.getRoom() != null ? booking.getRoom().getRoomCode() : "N/A",
+                            booking.getStartTime(),
+                            CHECKIN_WINDOW_MINUTES,
+                            noShow,
+                            isLocked
+                    );
+                } catch (Exception ex) {
+                    log.error("Lỗi khi gửi email cảnh báo hủy lịch cho booking id={}: {}", booking.getId(), ex.getMessage());
+                }
+            }
+
             throw new ConflictException(
                     "Đã quá thời hạn check-in (+15 phút so với giờ hẹn lúc " + startTime.toLocalTime() +
                     "). Lượt đặt phòng này đã được hệ thống tự động hủy và trả phòng để nhường cho người khác.");
@@ -216,6 +240,25 @@ public class CheckinServiceImpl implements CheckinService {
             b.setStatus(BookingStatus.CANCELLED_AUTO);
             bookingRepository.save(b);
             count++;
+
+            if (b.getUser() != null && b.getUser().getEmail() != null) {
+                try {
+                    int noShow = b.getUser().getNoShowCount() != null ? b.getUser().getNoShowCount() : 1;
+                    boolean isLocked = b.getUser().getStatus() == com.smartcampus.backend.entity.User.AccountStatus.LOCKED;
+                    emailService.sendAutoCancelEmail(
+                            b.getUser().getEmail(),
+                            b.getUser().getFullName(),
+                            b.getId(),
+                            b.getRoom() != null ? b.getRoom().getRoomCode() : "N/A",
+                            b.getStartTime(),
+                            CHECKIN_WINDOW_MINUTES,
+                            noShow,
+                            isLocked
+                    );
+                } catch (Exception ex) {
+                    log.error("Lỗi khi gửi email cảnh báo hủy lịch định kỳ cho booking id={}: {}", b.getId(), ex.getMessage());
+                }
+            }
         }
 
         // 2. Tự động trả phòng cho các booking IN_USE đã hết giờ sử dụng (endTime < now)
