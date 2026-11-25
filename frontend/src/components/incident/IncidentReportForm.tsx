@@ -3,12 +3,13 @@ import { useBooking } from '../../context/BookingContext';
 import { Toast } from '../ui/Toast';
 import { createIncidentApi } from '../../api/incidentApi';
 import { getErrorMessage } from '../../api/errorMessages';
-import { Loader2, Camera, Upload, AlertCircle } from 'lucide-react';
+import { Loader2, Upload, AlertCircle } from 'lucide-react';
 import { RoomDevice } from '../../types/booking';
 import {
   validateImageFile,
   formatFileSize,
   truncateFileName,
+  compressImageToDataUrl,
 } from '../../utils/imageUtils';
 
 export interface IncidentReportFormProps {
@@ -58,9 +59,9 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [imageError, setImageError] = useState<string | null>(null);
 
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string>('');
+  const compressionPromiseRef = useRef<Promise<string> | null>(null);
 
   previewUrlRef.current = previewUrl;
 
@@ -93,13 +94,27 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
     if (previewUrlRef.current) {
       URL.revokeObjectURL(previewUrlRef.current);
     }
+    compressionPromiseRef.current = null;
     setPreviewUrl('');
     setImageFile(null);
     setBase64Data('');
     setImageError(null);
-    if (cameraInputRef.current) cameraInputRef.current.value = '';
     if (galleryInputRef.current) galleryInputRef.current.value = '';
   };
+
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Không thể đọc file ảnh.'));
+        }
+      };
+      reader.onerror = () => reject(new Error('Không thể đọc file ảnh.'));
+      reader.readAsDataURL(file);
+    });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -121,16 +136,22 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     setImageFile(file);
+    setBase64Data('');
     setImageError(null);
 
-    // Chuyển đổi song song sang Base64 làm fallback an toàn
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setBase64Data(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    // Nén ảnh lớn qua Canvas để giảm dung lượng (~50-150KB) giúp gửi báo cáo và lưu TiDB nhanh chóng
+    const preparePromise = (
+      file.size > 350 * 1024
+        ? compressImageToDataUrl(file, 1024, 0.72).catch(() => readFileAsDataUrl(file))
+        : readFileAsDataUrl(file)
+    )
+      .then((encoded) => {
+        setBase64Data(encoded);
+        return encoded;
+      })
+      .catch(() => '');
+
+    compressionPromiseRef.current = preparePromise;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,14 +178,21 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
 
     setIsLoading(true);
     try {
+      let resolvedImageUrl = base64Data;
+      if (imageFile && !resolvedImageUrl && compressionPromiseRef.current) {
+        resolvedImageUrl = await compressionPromiseRef.current;
+      }
+
       const currentRoom = selectedRoom;
+      const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
       const res = await createIncidentApi({
         roomId: currentRoom ? currentRoom.roomCode : selectedRoomId,
         roomCode: currentRoom ? currentRoom.roomCode : undefined,
         equipmentId: selectedDeviceId,
+        equipmentName: selectedDevice?.name,
         description: description.trim(),
         imageFile: imageFile || undefined,
-        imageUrl: base64Data || undefined,
+        imageUrl: resolvedImageUrl || undefined,
       });
 
       if (res.success) {
@@ -255,26 +283,14 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
           />
         </div>
 
-        {/* ─── Khu vực Đính kèm / Chụp ảnh ─── */}
+        {/* ─── Khu vực Chọn ảnh từ máy ─── */}
         <div>
           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
             Ảnh Minh Họa Sự Cố (Tùy chọn)
           </label>
           <p className="text-[11px] text-slate-500 mb-2.5">
-            Đính kèm ảnh hiện trường giúp kỹ thuật viên nắm rõ tình trạng (tối đa 5 MB).
+            Đính kèm ảnh hiện trường từ máy giúp kỹ thuật viên nắm rõ tình trạng (tối đa 5 MB).
           </p>
-
-          {/* Input camera ẩn: trên mobile mở thẳng camera sau */}
-          <input
-            id="incident-camera-input"
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleFileChange}
-            aria-label="Tệp ảnh chụp từ camera"
-          />
 
           {/* Input file ẩn: chọn từ thư viện / máy tính */}
           <input
@@ -288,27 +304,15 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
           />
 
           {!imageFile ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                aria-label="Chụp ảnh sự cố"
-                className="flex items-center justify-center gap-2 py-3 px-4 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all shadow-sm active:scale-95"
-              >
-                <Camera className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>Chụp ảnh</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => galleryInputRef.current?.click()}
-                aria-label="Chọn ảnh từ máy"
-                className="flex items-center justify-center gap-2 py-3 px-4 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all shadow-sm active:scale-95"
-              >
-                <Upload className="w-4 h-4 text-slate-600 shrink-0" />
-                <span>Chọn ảnh từ máy</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              aria-label="Chọn ảnh từ máy"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 text-slate-700 text-xs font-bold transition-all shadow-sm active:scale-95"
+            >
+              <Upload className="w-4 h-4 text-slate-600 shrink-0" />
+              <span>Chọn ảnh từ máy</span>
+            </button>
           ) : (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70">
               <img
@@ -324,14 +328,6 @@ export const IncidentReportForm: React.FC<IncidentReportFormProps> = ({
                   {formatFileSize(imageFile.size)}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => cameraInputRef.current?.click()}
-                    aria-label="Chụp lại ảnh"
-                    className="py-1 px-2.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200 min-h-[32px]"
-                  >
-                    Chụp lại
-                  </button>
                   <button
                     type="button"
                     onClick={() => galleryInputRef.current?.click()}

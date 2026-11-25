@@ -140,7 +140,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  const bookerCode = user?.studentCode || (user?.email && user.email.match(/^(\d{8})@/)?.[1]) || '';
+  const bookerCode = user?.studentCode || '';
 
   useEffect(() => {
     if (isOpen && room && user) {

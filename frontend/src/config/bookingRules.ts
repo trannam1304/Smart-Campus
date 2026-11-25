@@ -7,7 +7,6 @@ export const WEEKLY_QUOTA_HOURS = 10;
 export const CHECKIN_EARLY_MIN = 15;
 export const CHECKIN_GRACE_MIN = 15;
 export const MIN_PURPOSE_LENGTH = 10;
-export const STUDENT_EMAIL_DOMAIN = '@student.edu.vn';
 
 export const FLOOR_HOURS: Record<number, { open: string; close: string }> = {
   0: { open: '07:30', close: '20:00' },

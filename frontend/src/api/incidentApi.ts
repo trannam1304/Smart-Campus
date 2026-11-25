@@ -5,6 +5,7 @@ export interface CreateIncidentRequest {
   roomId: string;
   roomCode?: string;
   equipmentId?: string;
+  equipmentName?: string;
   description: string;
   imageFile?: File;
   imageUrl?: string;
@@ -13,47 +14,33 @@ export interface CreateIncidentRequest {
 export const createIncidentApi = async (
   data: CreateIncidentRequest
 ): Promise<ApiEnvelope<{ incidentId: string }>> => {
-  try {
-    if (data.imageFile) {
-      const formData = new FormData();
-      formData.append('roomId', data.roomCode || data.roomId);
-      if (data.roomCode) {
-        formData.append('roomCode', data.roomCode);
-      }
-      if (data.equipmentId) {
-        formData.append('equipmentId', data.equipmentId);
-      }
-      formData.append('description', data.description);
-      formData.append('image', data.imageFile);
-      if (data.imageUrl) {
-        formData.append('imageUrl', data.imageUrl);
-      }
+  const effectiveRoomId = data.roomCode || data.roomId;
 
-      return await axiosClient.post('/incidents', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-    }
-
+  // Ưu tiên gửi JSON gọn nhẹ khi ảnh đã được nén sang Data URL để tránh payload multipart cồng kềnh
+  if (data.imageUrl || !data.imageFile) {
     return await axiosClient.post('/incidents', {
-      roomId: data.roomCode || data.roomId,
+      roomId: effectiveRoomId,
       roomCode: data.roomCode,
       equipmentId: data.equipmentId,
+      equipmentName: data.equipmentName,
       description: data.description,
       imageUrl: data.imageUrl,
     });
-  } catch (err: any) {
-    if (err?.status === 404 || err?.status === 500) {
-      // Dự phòng an toàn khi Backend chưa viết IncidentController
-      return {
-        success: true,
-        code: 201,
-        message: 'Đã gửi báo cáo sự cố thành công. Ban quản lý sẽ sớm xử lý.',
-        data: { incidentId: `INC-${Date.now()}` },
-        timestamp: new Date().toISOString(),
-      };
-    }
-    throw err;
   }
+
+  const formData = new FormData();
+  formData.append('roomId', effectiveRoomId);
+  if (data.roomCode) {
+    formData.append('roomCode', data.roomCode);
+  }
+  if (data.equipmentId) {
+    formData.append('equipmentId', data.equipmentId);
+  }
+  if (data.equipmentName) {
+    formData.append('equipmentName', data.equipmentName);
+  }
+  formData.append('description', data.description);
+  formData.append('image', data.imageFile);
+
+  return await axiosClient.post('/incidents', formData);
 };

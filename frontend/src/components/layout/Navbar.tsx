@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getHomePathByRole } from '../../utils/authUtils';
-import { BookOpen, LogOut, AlertTriangle } from 'lucide-react';
+import { LogOut, AlertTriangle, Menu, X } from 'lucide-react';
 import { studentNavItems, adminNavItems } from '../../config/navItems';
 import { getStudentWarningsApi, StudentWarningSummary } from '../../api/violationApi';
 import { StudentWarningModal } from '../student/StudentWarningModal';
@@ -14,6 +14,7 @@ export const Navbar: React.FC = () => {
 
   const [warningSummary, setWarningSummary] = useState<StudentWarningSummary | null>(null);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isAdminOrStaff = user?.role === 'ADMIN' || user?.role === 'STAFF';
   const currentTab = new URLSearchParams(location.search).get('tab') || 'OVERVIEW';
@@ -33,6 +34,10 @@ export const Navbar: React.FC = () => {
   useEffect(() => {
     fetchStudentWarnings();
   }, [fetchStudentWarnings]);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname, location.search]);
 
   const handleLogout = () => {
     logout();
@@ -54,12 +59,14 @@ export const Navbar: React.FC = () => {
 
           {/* Logo */}
           <Link to={getHomePathByRole(user?.role)} className="flex items-center gap-3 group shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:bg-blue-700 transition-colors">
-              <BookOpen className="w-6 h-6" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Logo Thư Viện Thông Minh"
+              className="w-10 h-10 object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
+            />
             <div>
               <span className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
-                Thư Viện Tòa L
+                Thư Viện Thông Minh
               </span>
               <span className="block text-[10px] font-medium text-slate-500 -mt-1 tracking-wider uppercase">
                 {isAdminOrStaff ? 'Portal QTV Thư Viện' : 'Smart Library Campus'}
@@ -67,50 +74,52 @@ export const Navbar: React.FC = () => {
             </div>
           </Link>
 
-          {/* Thanh điều hướng trên — chỉ hiện từ lg trở lên */}
-          <nav className="hidden lg:flex items-center gap-0.5 overflow-x-auto">
-            {isAdminOrStaff
-              ? adminNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = checkIsActive(item.path, item.id);
-                  return (
-                    <Link
-                      key={item.id}
-                      to={item.path}
-                      className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                        isActive
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {/* lg–xl: shortLabel; xl trở lên: label đầy đủ */}
-                      <span className="lg:inline xl:hidden">{item.shortLabel}</span>
-                      <span className="hidden xl:inline">{item.label}</span>
-                    </Link>
-                  );
-                })
-              : studentNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = checkIsActive(item.path);
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                        isActive
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {/* lg–xl: shortLabel; xl trở lên: label đầy đủ */}
-                      <span className="lg:inline xl:hidden">{item.shortLabel}</span>
-                      <span className="hidden xl:inline">{item.label}</span>
-                    </Link>
-                  );
-                })}
-          </nav>
+          {/* Thanh điều hướng trên — chỉ hiện khi đã đăng nhập từ lg trở lên */}
+          {user && (
+            <nav className="hidden lg:flex items-center gap-0.5 overflow-x-auto">
+              {isAdminOrStaff
+                ? adminNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = checkIsActive(item.path, item.id);
+                    return (
+                      <Link
+                        key={item.id}
+                        to={item.path}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                          isActive
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        {/* lg–xl: shortLabel; xl trở lên: label đầy đủ */}
+                        <span className="lg:inline xl:hidden">{item.shortLabel}</span>
+                        <span className="hidden xl:inline">{item.label}</span>
+                      </Link>
+                    );
+                  })
+                : studentNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = checkIsActive(item.path);
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                          isActive
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        {/* lg–xl: shortLabel; xl trở lên: label đầy đủ */}
+                        <span className="lg:inline xl:hidden">{item.shortLabel}</span>
+                        <span className="hidden xl:inline">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+            </nav>
+          )}
 
           {/* Thông tin người dùng, Cảnh báo vi phạm & Đăng xuất */}
           <div className="flex items-center gap-3 shrink-0">
@@ -161,6 +170,15 @@ export const Navbar: React.FC = () => {
                 >
                   <LogOut className="w-5 h-5" />
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                  aria-label={isMobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
+                  className="lg:hidden p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
               </div>
             ) : (
               <Link
@@ -173,6 +191,51 @@ export const Navbar: React.FC = () => {
           </div>
 
         </div>
+
+        {/* Menu xổ xuống trên màn hình nhỏ (chỉ khi đã đăng nhập) */}
+        {user && isMobileMenuOpen && (
+          <nav className="lg:hidden py-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 gap-2 animate-fade-in">
+            {isAdminOrStaff
+              ? adminNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = checkIsActive(item.path, item.id);
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-700 bg-slate-50 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })
+              : studentNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = checkIsActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-slate-700 bg-slate-50 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
+          </nav>
+        )}
       </div>
 
       {/* Modal Chi Tiết Cảnh Báo & Khiếu Nại dành cho Sinh Viên */}

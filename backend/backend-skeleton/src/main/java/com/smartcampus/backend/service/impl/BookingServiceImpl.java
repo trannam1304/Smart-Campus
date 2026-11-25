@@ -504,7 +504,7 @@ public class BookingServiceImpl implements BookingService {
             }
             res.setFloor(floorNum);
             res.setFloorCode(floorNum == 0 ? "G - Floor" : floorNum == 1 ? "1st - Floor" : floorNum == 2 ? "2nd - Floor" : floorNum == 3 ? "3rd - Floor" : floorNum + "th - Floor");
-            res.setBuilding("Thư viện Tòa L");
+            res.setBuilding("Thư Viện Thông Minh");
             res.setRoomType(room.getRoomCode() != null && (room.getRoomCode().endsWith("06") || room.getRoomCode().endsWith("03")) ? "Phòng hội nghị" : "Phòng học nhóm");
         }
 

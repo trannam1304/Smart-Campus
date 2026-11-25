@@ -28,6 +28,7 @@ export const getAccessToken = () => inMemoryAccessToken;
 
 const axiosClient = axios.create({
   baseURL,
+  timeout: 25000,
   withCredentials: true, // Tự động gửi và nhận HttpOnly Cookie (Refresh Token)
   headers: {
     'Content-Type': 'application/json',
@@ -39,6 +40,13 @@ axiosClient.interceptors.request.use(
     const token = inMemoryAccessToken || localStorage.getItem('token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (config.data instanceof FormData && config.headers) {
+      if (typeof (config.headers as any).delete === 'function') {
+        (config.headers as any).delete('Content-Type');
+      } else {
+        delete config.headers['Content-Type'];
+      }
     }
     return config;
   },

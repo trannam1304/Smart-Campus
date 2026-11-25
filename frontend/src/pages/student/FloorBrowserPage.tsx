@@ -110,7 +110,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room, onBook, onViewSchedule, onRep
 
   return (
     <div
-      className={`bg-white rounded-2xl border transition-all flex flex-col justify-between group shadow-sm hover:shadow-md ${
+      className={`bg-white rounded-2xl border transition-all duration-200 flex flex-col justify-between group shadow-sm hover:shadow-md hover:-translate-y-0.5 ${
         isMaintenance
           ? 'border-amber-200 bg-amber-50/30'
           : isBooked
@@ -351,7 +351,7 @@ export const FloorBrowserPage: React.FC = () => {
       {/* ── Header Banner ───────────────────────────────────────────────────── */}
       <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Đặt Phòng Thư Viện Tòa L</h1>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Đặt Phòng Thư Viện Thông Minh</h1>
           <p className="text-sm text-blue-100 mt-1">
             Duyệt và đặt phòng trực tiếp từ danh sách bên dưới.
           </p>

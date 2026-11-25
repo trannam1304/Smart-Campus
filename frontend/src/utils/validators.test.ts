@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getStudentCodeError, getPasswordError, getEmailError } from './validators';
+import { getStudentCodeError, getPasswordError } from './validators';
 
 describe('validators', () => {
   describe('getStudentCodeError', () => {
@@ -43,23 +43,6 @@ describe('validators', () => {
     it("'Pass1@' báo thiếu độ dài", () => {
       const err = getPasswordError('Pass1@');
       expect(err).toContain('độ dài');
-    });
-  });
-
-  describe('getEmailError', () => {
-    it('chấp nhận email có đuôi @student.edu.vn', () => {
-      expect(getEmailError('52100666@student.edu.vn')).toBe('');
-      expect(getEmailError('nguyenvana@student.edu.vn')).toBe('');
-    });
-
-    it('báo lỗi khi email không có đuôi @student.edu.vn', () => {
-      expect(getEmailError('test@gmail.com')).toBe('Email sinh viên phải có đuôi @student.edu.vn');
-      expect(getEmailError('test@student.tdtu.edu.vn')).toBe('Email sinh viên phải có đuôi @student.edu.vn');
-    });
-
-    it('báo lỗi khi email rỗng hoặc định dạng không hợp lệ', () => {
-      expect(getEmailError('')).toBe('Vui lòng nhập email');
-      expect(getEmailError('@student.edu.vn')).toBe('Email sinh viên không hợp lệ (phải có đuôi @student.edu.vn)');
     });
   });
 });

@@ -63,11 +63,13 @@ export const mapEquipmentTypeToCategory = (type?: string, name?: string): Device
 
 export const normalizeRoom = (r: any): Room => {
   const floor = r.floorNumber ?? r.floor ?? 0;
+  const rawBuilding = r.buildingName || r.building || '';
+  const building = !rawBuilding || /tòa l/i.test(rawBuilding) ? 'Thư Viện Thông Minh' : rawBuilding;
   return {
     id: String(r.roomId || r.id || ''),
     roomCode: r.roomCode || '',
     roomType: r.roomType || mapRoomTypeCodeToType(r.roomTypeCode),
-    building: r.buildingName || r.building || 'Tòa L',
+    building,
     floor,
     floorCode: r.floorCode || mapFloorNumberToCode(floor),
     capacity: r.capacity || 0,

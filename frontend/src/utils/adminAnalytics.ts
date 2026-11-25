@@ -64,6 +64,23 @@ export interface KPISummary {
   currentUtilizationRate: number;
 }
 
+export interface DailyStudentDensityItem {
+  day: number;
+  date: string;
+  label: string;
+  studentCount: number;
+  bookingCount: number;
+}
+
+export interface MonthlyStudentDensityResult {
+  month: string;
+  days: DailyStudentDensityItem[];
+  totalStudents: number;
+  totalBookings: number;
+  peakDay: string;
+  peakStudents: number;
+}
+
 /**
  * Tính tỷ lệ lấp đầy theo tầng cho tất cả 6 tầng (G, 1-5)
  * Tỷ lệ = (tổng phút đã đặt trong ngày / (tổng phút mở cửa × số phòng của tầng)) × 100
@@ -295,5 +312,85 @@ export const calculateKPISummary = (
     openIncidents,
     ongoingBookingsCount,
     currentUtilizationRate,
+  };
+};
+
+const VALID_DENSITY_STATUSES = new Set([
+  'CONFIRMED',
+  'IN_USE',
+  'COMPLETED',
+  'COMPLETED_FORCE',
+]);
+
+/**
+ * Tính mật độ số lượng sinh viên đặt phòng theo từng ngày trong tháng được chọn (YYYY-MM).
+ * Tính tổng số sinh viên (numberOfPeople) và số lượt đặt phòng hợp lệ cho mỗi ngày 1..daysInMonth.
+ */
+export const calculateMonthlyStudentDensity = (
+  bookings: Booking[],
+  selectedMonth: string
+): MonthlyStudentDensityResult => {
+  const match = /^(\d{4})-(\d{2})$/.exec((selectedMonth || '').trim());
+  const now = new Date();
+  const year = match ? Number(match[1]) : now.getFullYear();
+  const month = match ? Number(match[2]) : now.getMonth() + 1;
+  const normalizedMonth = `${year}-${String(month).padStart(2, '0')}`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  const monthBookings = bookings.filter(
+    (b) =>
+      typeof b.date === 'string' &&
+      b.date.startsWith(`${normalizedMonth}-`) &&
+      VALID_DENSITY_STATUSES.has(b.status)
+  );
+
+  const byDay = new Map<number, { studentCount: number; bookingCount: number }>();
+  monthBookings.forEach((b) => {
+    const dayNum = Number(b.date.slice(8, 10));
+    if (!Number.isFinite(dayNum) || dayNum < 1 || dayNum > daysInMonth) return;
+    const prev = byDay.get(dayNum) || { studentCount: 0, bookingCount: 0 };
+    const people = Math.max(1, Number(b.numberOfPeople) || b.members?.length || 1);
+    byDay.set(dayNum, {
+      studentCount: prev.studentCount + people,
+      bookingCount: prev.bookingCount + 1,
+    });
+  });
+
+  const days: DailyStudentDensityItem[] = [];
+  let totalStudents = 0;
+  let totalBookings = 0;
+  let peakStudents = 0;
+  let peakDay = '';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dd = String(d).padStart(2, '0');
+    const mm = String(month).padStart(2, '0');
+    const dateStr = `${normalizedMonth}-${dd}`;
+    const stats = byDay.get(d) || { studentCount: 0, bookingCount: 0 };
+
+    totalStudents += stats.studentCount;
+    totalBookings += stats.bookingCount;
+
+    if (stats.studentCount > peakStudents) {
+      peakStudents = stats.studentCount;
+      peakDay = `${dd}/${mm}`;
+    }
+
+    days.push({
+      day: d,
+      date: dateStr,
+      label: dd,
+      studentCount: stats.studentCount,
+      bookingCount: stats.bookingCount,
+    });
+  }
+
+  return {
+    month: normalizedMonth,
+    days,
+    totalStudents,
+    totalBookings,
+    peakDay,
+    peakStudents,
   };
 };

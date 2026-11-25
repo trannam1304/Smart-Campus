@@ -29,9 +29,16 @@ const getDeviceIcon = (category?: DeviceCategory, name?: string) => {
   return <Layers className="w-3.5 h-3.5 text-slate-500 shrink-0" />;
 };
 
+const getLocalDateString = (d = new Date()) => {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export const SearchRoomsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(() => getLocalDateString());
   const [startTime, setStartTime] = useState<string>('07:30');
   const [endTime, setEndTime] = useState<string>('09:30');
   const [minCap, setMinCap] = useState<number>(0);
@@ -299,7 +306,7 @@ export const SearchRoomsPage: React.FC = () => {
             return (
               <div
                 key={room.id}
-                className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-4">
                   <div

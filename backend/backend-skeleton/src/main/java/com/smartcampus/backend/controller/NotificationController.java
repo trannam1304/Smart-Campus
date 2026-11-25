@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
  * TODO: bổ sung endpoint (GET/POST/PUT...) tương ứng Đầu vào/Đầu ra trong SRS.
  */
 @RestController
-@RequestMapping("/api/notification")
+@RequestMapping({"/api/v1/notification", "/api/notification"})
 @RequiredArgsConstructor
 public class NotificationController {
 

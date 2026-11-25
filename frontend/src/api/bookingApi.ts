@@ -80,7 +80,7 @@ export const createBookingApi = async (data: CreateBookingRequest): Promise<ApiE
       occupancy: data.occupancy,
       studentCode: data.memberStudentCodes?.[0] || '',
       studentName: 'Tôi',
-      building: 'Tòa L',
+      building: 'Thư Viện Thông Minh',
       floorCode: 'G - Floor',
       roomType: 'Phòng tự học',
       createdAt: new Date().toISOString(),

@@ -1,10 +1,9 @@
 import React from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { BookingProvider } from './context/BookingContext';
 import { AppRoutes } from './routes/AppRoutes';
 import { Navbar } from './components/layout/Navbar';
-import { MobileFooterNav } from './components/layout/MobileFooterNav';
 import { ToastProvider, setToastFunctions, useToast } from './hooks/useToast';
 
 const GlobalToastInit: React.FC = () => {
@@ -15,6 +14,17 @@ const GlobalToastInit: React.FC = () => {
   return null;
 };
 
+const AnimatedPageContainer: React.FC = () => {
+  const location = useLocation();
+  return (
+    <main className="flex-1">
+      <div key={location.pathname} className="animate-fade-in-up">
+        <AppRoutes />
+      </div>
+    </main>
+  );
+};
+
 export const App: React.FC = () => {
   return (
     <ToastProvider>
@@ -22,12 +32,9 @@ export const App: React.FC = () => {
       <AuthProvider>
         <BookingProvider>
           <BrowserRouter>
-            <div className="min-h-screen bg-slate-50 flex flex-col pb-16 lg:pb-0">
+            <div className="min-h-screen bg-slate-50 flex flex-col">
               <Navbar />
-              <main className="flex-1">
-                <AppRoutes />
-              </main>
-              <MobileFooterNav />
+              <AnimatedPageContainer />
             </div>
           </BrowserRouter>
         </BookingProvider>

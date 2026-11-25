@@ -41,12 +41,11 @@ class AuthIntegrationTest {
     // =========================================================================
 
     @Test
-    @DisplayName("[FR-1.1 - Exception Flow] Đăng ký thất bại khi email không thuộc miền @student.edu.vn")
-    void registerRejectsNonStudentEmailDomain() throws Exception {
+    @DisplayName("[FR-1.1 - Exception Flow] Đăng ký thất bại khi thiếu MSSV")
+    void registerRejectsMissingStudentCode() throws Exception {
         RegisterRequest req = new RegisterRequest();
         req.setFullName("Nguyen Van Test");
-        req.setStudentCode("52109991");
-        req.setEmail("test_invalid@gmail.com");
+        req.setStudentCode("");
         req.setPassword("StudentPass@123");
         req.setFaculty("CNTT");
 
@@ -59,13 +58,12 @@ class AuthIntegrationTest {
     }
 
     @Test
-    @DisplayName("[FR-1.1 - Normal Flow] Đăng ký tài khoản sinh viên hợp lệ với email @student.edu.vn thành công")
-    void registerSucceedsWithValidStudentEmail() throws Exception {
+    @DisplayName("[FR-1.1 - Normal Flow] Đăng ký tài khoản sinh viên hợp lệ bằng MSSV (không cần email) thành công")
+    void registerSucceedsWithValidStudentCode() throws Exception {
         String randomSuffix = UUID.randomUUID().toString().substring(0, 6);
         RegisterRequest req = new RegisterRequest();
         req.setFullName("Sinh Vien ISO Test");
         req.setStudentCode("SV" + randomSuffix);
-        req.setEmail("sv." + randomSuffix + "@student.edu.vn");
         req.setPassword("StudentPass@123");
         req.setFaculty("Cong Nghe Thong Tin");
 

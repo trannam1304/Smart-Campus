@@ -1,23 +1,18 @@
 package com.smartcampus.backend.service.impl;
 
 import com.smartcampus.backend.dto.request.ChangePasswordRequest;
-import com.smartcampus.backend.dto.request.ForgotPasswordRequest;
 import com.smartcampus.backend.dto.request.LoginRequest;
 import com.smartcampus.backend.dto.request.RegisterRequest;
-import com.smartcampus.backend.dto.request.ResetPasswordRequest;
 import com.smartcampus.backend.dto.request.VerifyEmailRequest;
 import com.smartcampus.backend.dto.response.AuthResponse;
-import com.smartcampus.backend.entity.PasswordResetOtp;
 import com.smartcampus.backend.entity.RefreshToken;
 import com.smartcampus.backend.entity.User;
 import com.smartcampus.backend.exception.ConflictException;
 import com.smartcampus.backend.exception.ResourceNotFoundException;
-import com.smartcampus.backend.repository.PasswordResetOtpRepository;
 import com.smartcampus.backend.repository.RefreshTokenRepository;
 import com.smartcampus.backend.repository.UserRepository;
 import com.smartcampus.backend.security.JwtTokenProvider;
 import com.smartcampus.backend.service.AuthService;
-import com.smartcampus.backend.service.EmailService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,81 +20,61 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
  * Triển khai nghiệp vụ nhóm Auth. Liên quan: FR-1.1, FR-1.2, FR-1.3, FR-1.4.
- *
- * <p>Luồng nghiệp vụ theo Normal Flow / Exception Flow trong SRS ISO/IEC/IEEE 29148:
- * <ul>
- *   <li><b>register</b> (FR-1.1): Kiểm tra email/MSSV trùng → mã hoá mật khẩu → lưu trạng thái
- *       PENDING → sinh mã xác thực → gửi email kích hoạt → trả về thông báo thành công.
- *       Nếu email/MSSV đã tồn tại hoặc email không đúng đuôi @student.edu.vn → báo lỗi.</li>
- *   <li><b>verifyEmail</b> (FR-1.1): Tìm user theo mã xác thực → kiểm tra chưa hết hạn →
- *       đổi trạng thái sang ACTIVE → xóa mã xác thực. Nếu token không hợp lệ/đã hết hạn → báo lỗi.</li>
- *   <li><b>login</b> (FR-1.2): Xác thực email/MSSV + mật khẩu qua AuthenticationManager →
- *       sinh JWT → trả về token + role + fullName. Chỉ cho phép tài khoản ACTIVE.
- *       Nếu mật khẩu sai hoặc tài khoản bị khóa → báo lỗi và từ chối truy cập.</li>
- *   <li><b>changePassword</b> (FR-1.4): Xác thực mật khẩu cũ → mã hoá mật khẩu mới →
- *       cập nhật CSDL. Nếu mật khẩu cũ không chính xác → báo lỗi.</li>
- *   <li><b>forgotPassword</b> (FR-1.4): Tìm user theo email → sinh OTP 5 phút → lưu vào
- *       password_reset_otp → gửi email OTP.</li>
- *   <li><b>resetPassword</b> (FR-1.4): Kiểm tra OTP chưa hết hạn/chưa dùng → cập nhật
- *       mật khẩu mới → đánh dấu OTP đã dùng.</li>
- * </ul>
  */
 @Service
 @Transactional
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
-    private final PasswordResetOtpRepository otpRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
-    private final EmailService emailService;
 
     public AuthServiceImpl(UserRepository userRepository,
-                           PasswordResetOtpRepository otpRepository,
                            RefreshTokenRepository refreshTokenRepository,
                            JwtTokenProvider jwtTokenProvider,
                            PasswordEncoder passwordEncoder,
-                           AuthenticationManager authenticationManager,
-                           EmailService emailService) {
+                           AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
-        this.otpRepository = otpRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
-        this.emailService = emailService;
     }
 
     // ------------------------------------------------------------------
-    // FR-1.1: Đăng ký tài khoản sinh viên
+    // FR-1.1: Đăng ký tài khoản sinh viên (chỉ dùng MSSV, không sử dụng email)
     // ------------------------------------------------------------------
     @Override
     public AuthResponse register(RegisterRequest request) {
-        // Kiểm tra email đúng đuôi @student.edu.vn (defense-in-depth, ngoài validation DTO)
-        if (!request.getEmail().endsWith("@student.edu.vn")) {
-            throw new ConflictException("Email phải là email trường có đuôi @student.edu.vn.");
+        String studentCode = request.getStudentCode() != null ? request.getStudentCode().trim() : "";
+        if (studentCode.isEmpty()) {
+            throw new ConflictException("Vui lòng nhập mã số sinh viên (MSSV).");
         }
 
-        // Kiểm tra trùng email / MSSV
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ConflictException("Email hoặc MSSV đã được đăng ký trên hệ thống.");
-        }
-        if (userRepository.existsByStudentCode(request.getStudentCode())) {
-            throw new ConflictException("Email hoặc MSSV đã được đăng ký trên hệ thống.");
+        // Kiểm tra trùng MSSV
+        if (userRepository.existsByStudentCode(studentCode)) {
+            throw new ConflictException("Tài khoản sinh viên (MSSV) đã được đăng ký trên hệ thống.");
         }
 
-        // Mã hoá mật khẩu, kích hoạt ACTIVE ngay lập tức (không cần duyệt/xác thực email)
+        // Tạo định danh nội bộ đáp ứng ràng buộc cột email của CSDL (không yêu cầu người dùng nhập mail)
+        String internalEmail = (request.getEmail() != null && !request.getEmail().isBlank())
+                ? request.getEmail().trim().toLowerCase()
+                : studentCode.toLowerCase() + "@student.local";
+        if (userRepository.existsByEmail(internalEmail)) {
+            throw new ConflictException("Tài khoản sinh viên (MSSV) đã được đăng ký trên hệ thống.");
+        }
+
+        // Mã hoá mật khẩu, kích hoạt ACTIVE ngay lập tức
         User user = new User();
-        user.setEmail(request.getEmail().trim().toLowerCase());
-        user.setStudentCode(request.getStudentCode().trim());
+        user.setEmail(internalEmail);
+        user.setStudentCode(studentCode);
         user.setFullName(request.getFullName().trim());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setFaculty(request.getFaculty());
@@ -110,7 +85,7 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
-        return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
+        return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), null, user.getId());
     }
 
     // ------------------------------------------------------------------
@@ -146,8 +121,8 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse login(LoginRequest request) {
         // Tự động chuyển PENDING sang ACTIVE nếu tài khoản trước đó ở trạng thái PENDING (bỏ cơ chế duyệt)
         String loginId = request.getUsername() != null ? request.getUsername().trim() : "";
-        User existingUser = userRepository.findByEmail(loginId)
-                .or(() -> userRepository.findByStudentCode(loginId))
+        User existingUser = userRepository.findByStudentCode(loginId)
+                .or(() -> userRepository.findByEmail(loginId))
                 .orElse(null);
         if (existingUser != null && existingUser.getStatus() == User.AccountStatus.PENDING) {
             existingUser.setStatus(User.AccountStatus.ACTIVE);
@@ -172,6 +147,7 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         User user = userRepository.findByEmail(userDetails.getUsername())
+                .or(() -> userRepository.findByStudentCode(userDetails.getUsername()))
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Không tìm thấy tài khoản người dùng."));
 
@@ -207,10 +183,11 @@ public class AuthServiceImpl implements AuthService {
     // FR-1.4: Đổi mật khẩu (yêu cầu đã đăng nhập)
     // ------------------------------------------------------------------
     @Override
-    public AuthResponse changePassword(String email, ChangePasswordRequest request) {
-        User user = userRepository.findByEmail(email)
+    public AuthResponse changePassword(String identifier, ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(identifier)
+                .or(() -> userRepository.findByStudentCode(identifier))
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Không tìm thấy tài khoản với email: " + email));
+                        new ResourceNotFoundException("Không tìm thấy tài khoản: " + identifier));
 
         // Xác thực mật khẩu cũ
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
@@ -222,65 +199,6 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         return new AuthResponse(null, user.getRole().name(), user.getFullName(), null, user.getStudentCode(), user.getEmail(), user.getId());
-    }
-
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
-    // ------------------------------------------------------------------
-    // FR-1.4: Gửi mã OTP khôi phục mật khẩu
-    // ------------------------------------------------------------------
-    @Override
-    public String forgotPassword(ForgotPasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Không tìm thấy tài khoản với email này."));
-
-        // Sinh mã OTP 6 chữ số an toàn bảo mật
-        String otpCode = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
-
-        PasswordResetOtp otp = new PasswordResetOtp();
-        otp.setUserId(user.getId());
-        otp.setOtpCode(otpCode);
-        otp.setExpiresAt(LocalDateTime.now().plusMinutes(5)); // hiệu lực 5 phút (FR-1.4)
-        otp.setIsUsed(false);
-        otpRepository.save(otp);
-
-        // Gửi email OTP (dev: chỉ ghi log)
-        emailService.sendOtpEmail(request.getEmail(), otpCode);
-
-        return "Mã OTP đã được gửi đến email của bạn. Hiệu lực trong 5 phút.";
-    }
-
-    // ------------------------------------------------------------------
-    // FR-1.4: Khôi phục mật khẩu bằng OTP
-    // ------------------------------------------------------------------
-    @Override
-    public String resetPassword(ResetPasswordRequest request) {
-        PasswordResetOtp otp = otpRepository.findByOtpCode(request.getOtpCode())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Mã OTP không chính xác."));
-
-        if (otp.getIsUsed()) {
-            throw new ConflictException("Mã OTP đã được sử dụng.");
-        }
-
-        if (otp.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ConflictException("Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.");
-        }
-
-        User user = userRepository.findById(otp.getUserId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Không tìm thấy tài khoản người dùng."));
-
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-
-        otpRepository.markAsUsed(otp.getId());
-
-        // Thu hồi toàn bộ Refresh Tokens để vô hiệu hóa phiên cũ nếu bị lộ mật khẩu
-        refreshTokenRepository.revokeAllByUserId(user.getId());
-
-        return "Mật khẩu đã được cập nhật thành công.";
     }
 
     // ------------------------------------------------------------------

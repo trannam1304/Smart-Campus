@@ -3,6 +3,10 @@ spring:
     name: smart-campus-backend
   profiles:
     active: tidb   # Đổi từ 'mysql' sang 'tidb'
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
   jpa:
     hibernate:
       ddl-auto: none

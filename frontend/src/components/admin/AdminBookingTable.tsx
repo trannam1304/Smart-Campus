@@ -484,18 +484,18 @@ export const AdminBookingTable: React.FC<AdminBookingTableProps> = ({
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {filteredBookings.map((b) => (
                   <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-blue-600 min-w-0">#{b.id}</td>
+                    <td className="py-3 px-4 font-mono font-bold text-blue-600 min-w-0 whitespace-nowrap">#{b.id}</td>
                     <td className="py-3 px-4 min-w-0">
                       <span className="block font-bold text-slate-900 break-words">{b.studentName || 'Chưa cập nhật'}</span>
-                      <span className="text-[10px] text-slate-400 font-mono break-words">MSSV: {b.studentCode || 'N/A'}</span>
+                      <span className="text-[10px] text-slate-400 font-mono break-words whitespace-nowrap">MSSV: {b.studentCode || 'N/A'}</span>
                     </td>
                     <td className="py-3 px-4 min-w-0">
-                      <span className="font-bold text-slate-800 block break-words">Phòng {b.roomCode}</span>
+                      <span className="font-bold text-slate-800 block whitespace-nowrap">Phòng {b.roomCode}</span>
                       <span className="text-[10px] text-slate-400 whitespace-nowrap">{b.floorCode || `Tầng ${b.floor ?? ''}`}</span>
                     </td>
                     <td className="py-3 px-4 min-w-0">
-                      <span className="font-bold text-slate-800 break-words">{b.date}</span>
-                      <span className="block text-[10px] text-slate-500 font-mono break-words">
+                      <span className="font-bold text-slate-800 whitespace-nowrap">{b.date}</span>
+                      <span className="block text-[10px] text-slate-500 font-mono whitespace-nowrap">
                         {b.startTime} - {b.endTime}
                       </span>
                     </td>

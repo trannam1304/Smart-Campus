@@ -12,6 +12,7 @@ import {
   BarChart3,
   CheckSquare,
   AlertTriangle,
+  ShieldAlert,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -72,7 +73,7 @@ export const studentNavItems: StudentNavItem[] = [
 export const adminNavItems: AdminNavItem[] = [
   {
     id: 'OVERVIEW',
-    label: 'Analytic Thống Kê',
+    label: 'Thống Kê',
     shortLabel: 'Thống kê',
     path: '/admin?tab=OVERVIEW',
     icon: BarChart3,
@@ -100,9 +101,16 @@ export const adminNavItems: AdminNavItem[] = [
   },
   {
     id: 'INCIDENTS',
-    label: 'Xử Lý Sự Cố & Vi Phạm',
+    label: 'Xử Lý Phản Ánh Sự Cố',
     shortLabel: 'Sự cố',
     path: '/admin?tab=INCIDENTS',
     icon: AlertTriangle,
+  },
+  {
+    id: 'VIOLATIONS',
+    label: 'Quản Lý Người Vi Phạm',
+    shortLabel: 'Vi phạm',
+    path: '/admin?tab=VIOLATIONS',
+    icon: ShieldAlert,
   },
 ];

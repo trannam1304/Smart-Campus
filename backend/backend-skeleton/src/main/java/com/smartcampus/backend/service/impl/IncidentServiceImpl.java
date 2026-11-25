@@ -25,55 +25,86 @@ public class IncidentServiceImpl implements IncidentService {
 
     @Override
     @Transactional
-    public Map<String, Object> createIncident(String roomCodeOrId, Long equipmentId, String description, String imageUrl, String reporterEmail) {
+    public Map<String, Object> createIncident(String roomCodeOrId, Long equipmentId, String equipmentName, String description, String imageUrl, String reporterEmail) {
         User reporter = userRepository.findByEmail(reporterEmail)
+                .or(() -> userRepository.findByStudentCode(reporterEmail))
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản người báo cáo."));
+
+        String cleanRoom = (roomCodeOrId != null) ? roomCodeOrId.replace("ROOM-", "").trim() : "";
+        String normalizedCode = (roomCodeOrId != null) ? roomCodeOrId.trim() : "";
+        if (normalizedCode.toLowerCase().startsWith("r-g0")) {
+            normalizedCode = "L.00" + normalizedCode.substring(4);
+        } else if (normalizedCode.toLowerCase().startsWith("r-g")) {
+            normalizedCode = "L.0" + normalizedCode.substring(3);
+        } else if (normalizedCode.toLowerCase().startsWith("r-")) {
+            normalizedCode = "L." + normalizedCode.substring(2);
+        }
+
+        List<Long> roomIds = jdbc.query(
+                "SELECT room_id FROM rooms WHERE room_code = :code OR room_code = :normalizedCode OR room_id = :roomId LIMIT 1",
+                new MapSqlParameterSource()
+                        .addValue("code", roomCodeOrId)
+                        .addValue("normalizedCode", normalizedCode)
+                        .addValue("roomId", cleanRoom.matches("\\d+") ? Long.parseLong(cleanRoom) : -1L),
+                (rs, rowNum) -> rs.getLong("room_id")
+        );
+        Long targetRoomId = roomIds.isEmpty() ? null : roomIds.get(0);
 
         Long resolvedEquipmentId = equipmentId;
 
-        // Kiểm tra xem equipmentId truyền lên có thực sự tồn tại trong bảng equipment không
+        // Kiểm tra equipmentId truyền lên có tồn tại (và khớp đúng phòng nếu đã xác định được phòng)
         if (resolvedEquipmentId != null && resolvedEquipmentId > 0) {
+            String eqCheckSql = targetRoomId != null
+                    ? "SELECT equipment_id FROM equipment WHERE equipment_id = :id AND room_id = :roomId"
+                    : "SELECT equipment_id FROM equipment WHERE equipment_id = :id";
             List<Long> exists = jdbc.query(
-                    "SELECT equipment_id FROM equipment WHERE equipment_id = :id",
-                    new MapSqlParameterSource("id", resolvedEquipmentId),
+                    eqCheckSql,
+                    new MapSqlParameterSource()
+                            .addValue("id", resolvedEquipmentId)
+                            .addValue("roomId", targetRoomId),
                     (rs, rowNum) -> rs.getLong("equipment_id")
             );
             if (exists.isEmpty()) {
-                resolvedEquipmentId = null; // Thiết bị không tồn tại trong DB, cần tìm lại theo phòng
+                resolvedEquipmentId = null;
             }
         }
 
-        // Nếu không có equipmentId trực tiếp hoặc ID không tồn tại, tìm theo roomId / roomCode
-        if (resolvedEquipmentId == null || resolvedEquipmentId <= 0) {
-            String cleanRoom = (roomCodeOrId != null) ? roomCodeOrId.replace("ROOM-", "").trim() : "";
-
-            // Chuẩn hóa mã phòng: r-g01 -> L.001, r-g02 -> L.002, r-101 -> L.101
-            String normalizedCode = (roomCodeOrId != null) ? roomCodeOrId.trim() : "";
-            if (normalizedCode.toLowerCase().startsWith("r-g0")) {
-                normalizedCode = "L.00" + normalizedCode.substring(4);
-            } else if (normalizedCode.toLowerCase().startsWith("r-g")) {
-                normalizedCode = "L.0" + normalizedCode.substring(3);
-            } else if (normalizedCode.toLowerCase().startsWith("r-")) {
-                normalizedCode = "L." + normalizedCode.substring(2);
-            }
-
-            List<Long> foundEqs = jdbc.query(
+        // Nếu chưa có equipmentId hợp lệ, ưu tiên tìm theo tên thiết bị trong đúng phòng đó
+        if ((resolvedEquipmentId == null || resolvedEquipmentId <= 0) && targetRoomId != null && equipmentName != null && !equipmentName.isBlank()) {
+            String trimmedName = equipmentName.trim();
+            List<Long> matchedByName = jdbc.query(
                     """
-                    SELECT e.equipment_id FROM equipment e JOIN rooms r ON r.room_id = e.room_id
-                    WHERE r.room_code = :code OR r.room_code = :normalizedCode OR r.room_id = :roomId
-                    ORDER BY e.equipment_id ASC LIMIT 1
+                    SELECT equipment_id FROM equipment
+                    WHERE room_id = :roomId
+                      AND (LOWER(equipment_name) = LOWER(:exactName) OR LOWER(equipment_name) LIKE LOWER(:likePattern))
+                    ORDER BY CASE WHEN LOWER(equipment_name) = LOWER(:exactName) THEN 0 ELSE 1 END, equipment_id ASC
+                    LIMIT 1
                     """,
                     new MapSqlParameterSource()
-                            .addValue("code", roomCodeOrId)
-                            .addValue("normalizedCode", normalizedCode)
-                            .addValue("roomId", cleanRoom.matches("\\d+") ? Long.parseLong(cleanRoom) : -1L),
+                            .addValue("roomId", targetRoomId)
+                            .addValue("exactName", trimmedName)
+                            .addValue("likePattern", "%" + trimmedName + "%"),
                     (rs, rowNum) -> rs.getLong("equipment_id")
             );
+            if (!matchedByName.isEmpty()) {
+                resolvedEquipmentId = matchedByName.get(0);
+            }
+        }
 
-            if (!foundEqs.isEmpty()) {
-                resolvedEquipmentId = foundEqs.get(0);
-            } else {
-                // Fallback thiết bị bất kỳ có trong bảng equipment
+        // Fallback: chọn thiết bị đầu tiên của phòng, hoặc thiết bị đầu tiên trong hệ thống
+        if (resolvedEquipmentId == null || resolvedEquipmentId <= 0) {
+            if (targetRoomId != null) {
+                List<Long> foundEqs = jdbc.query(
+                        "SELECT equipment_id FROM equipment WHERE room_id = :roomId ORDER BY equipment_id ASC LIMIT 1",
+                        new MapSqlParameterSource("roomId", targetRoomId),
+                        (rs, rowNum) -> rs.getLong("equipment_id")
+                );
+                if (!foundEqs.isEmpty()) {
+                    resolvedEquipmentId = foundEqs.get(0);
+                }
+            }
+
+            if (resolvedEquipmentId == null || resolvedEquipmentId <= 0) {
                 List<Long> anyEq = jdbc.query("SELECT equipment_id FROM equipment LIMIT 1", (rs, rowNum) -> rs.getLong("equipment_id"));
                 if (!anyEq.isEmpty()) {
                     resolvedEquipmentId = anyEq.get(0);
@@ -130,7 +161,8 @@ public class IncidentServiceImpl implements IncidentService {
             item.put("deviceName", rs.getString("equipment_name") != null ? rs.getString("equipment_name") : "Thiết bị phòng");
             item.put("equipmentId", rs.getObject("equipment_id") != null ? "EQ-" + rs.getLong("equipment_id") : "");
             item.put("description", rs.getString("description"));
-            item.put("imageUrl", rs.getString("image_url"));
+            String rawImageUrl = rs.getString("image_url");
+            item.put("imageUrl", resolveReadableImageUrl(rawImageUrl));
 
             String rawStatus = rs.getString("status");
             String status = ("RESOLVED".equalsIgnoreCase(rawStatus)) ? "RESOLVED" : "OPEN";
@@ -164,5 +196,21 @@ public class IncidentServiceImpl implements IncidentService {
         res.put("status", "RESOLVED");
         res.put("message", "Đã đánh dấu sự cố là đã xử lý.");
         return res;
+    }
+
+    private String resolveReadableImageUrl(String rawUrl) {
+        if (rawUrl == null || rawUrl.isBlank()) {
+            return null;
+        }
+        String trimmed = rawUrl.trim();
+        if (trimmed.startsWith("/uploads/") || trimmed.startsWith("uploads/")) {
+            String relative = trimmed.replaceFirst("^/?uploads/", "");
+            java.nio.file.Path p1 = java.nio.file.Paths.get("uploads", relative).toAbsolutePath().normalize();
+            java.nio.file.Path p2 = java.nio.file.Paths.get("backend", "backend-skeleton", "uploads", relative).toAbsolutePath().normalize();
+            if (!java.nio.file.Files.exists(p1) && !java.nio.file.Files.exists(p2)) {
+                return null;
+            }
+        }
+        return trimmed;
     }
 }

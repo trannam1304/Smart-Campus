@@ -3,6 +3,7 @@ import {
   calculateFloorUtilization,
   calculateHourlyBookings,
   calculateKPISummary,
+  calculateMonthlyStudentDensity,
   calculateRoomUtilization,
 } from './adminAnalytics';
 import { Booking, FloorData, Room } from '../types/booking';
@@ -898,6 +899,134 @@ describe('adminAnalytics', () => {
       for (const r of mockExactRooms) {
         expect(resultCodes).toContain(r.roomCode);
       }
+    });
+  });
+
+  describe('calculateMonthlyStudentDensity', () => {
+    it('calculates daily student density and booking counts for all days in the selected month', () => {
+      const bookings: Booking[] = [
+        {
+          id: 'b-m1',
+          roomId: 'r-1',
+          roomCode: 'L.101',
+          roomType: 'Phòng học nhóm',
+          building: 'Thư Viện Thông Minh',
+          floor: 1,
+          floorCode: '1st - Floor',
+          studentId: 'u-1',
+          studentName: 'SV 1',
+          studentCode: '52100111',
+          date: '2026-11-05',
+          startTime: '08:00',
+          endTime: '10:00',
+          numberOfPeople: 6,
+          purpose: 'Học nhóm',
+          qrCode: 'qr-m1',
+          status: 'COMPLETED',
+          createdAt: '2026-11-04T10:00:00Z',
+        },
+        {
+          id: 'b-m2',
+          roomId: 'r-2',
+          roomCode: 'L.102',
+          roomType: 'Phòng học nhóm',
+          building: 'Thư Viện Thông Minh',
+          floor: 1,
+          floorCode: '1st - Floor',
+          studentId: 'u-2',
+          studentName: 'SV 2',
+          studentCode: '52100222',
+          date: '2026-11-05',
+          startTime: '13:00',
+          endTime: '15:00',
+          numberOfPeople: 4,
+          purpose: 'Thảo luận',
+          qrCode: 'qr-m2',
+          status: 'CONFIRMED',
+          createdAt: '2026-11-04T10:00:00Z',
+        },
+        {
+          id: 'b-m3',
+          roomId: 'r-3',
+          roomCode: 'L.201',
+          roomType: 'Phòng video',
+          building: 'Thư Viện Thông Minh',
+          floor: 2,
+          floorCode: '2nd - Floor',
+          studentId: 'u-3',
+          studentName: 'SV 3',
+          studentCode: '52100333',
+          date: '2026-11-12',
+          startTime: '09:00',
+          endTime: '11:00',
+          numberOfPeople: 15,
+          purpose: 'Chiếu phim chuyên đề',
+          qrCode: 'qr-m3',
+          status: 'IN_USE',
+          createdAt: '2026-11-11T10:00:00Z',
+        },
+        // Cancelled and other-month bookings should be excluded
+        {
+          id: 'b-m4',
+          roomId: 'r-1',
+          roomCode: 'L.101',
+          roomType: 'Phòng học nhóm',
+          building: 'Thư Viện Thông Minh',
+          floor: 1,
+          floorCode: '1st - Floor',
+          studentId: 'u-4',
+          studentName: 'SV 4',
+          studentCode: '52100444',
+          date: '2026-11-05',
+          startTime: '15:00',
+          endTime: '17:00',
+          numberOfPeople: 8,
+          purpose: 'Học bài',
+          qrCode: 'qr-m4',
+          status: 'CANCELLED_USER',
+          createdAt: '2026-11-04T10:00:00Z',
+        },
+        {
+          id: 'b-m5',
+          roomId: 'r-1',
+          roomCode: 'L.101',
+          roomType: 'Phòng học nhóm',
+          building: 'Thư Viện Thông Minh',
+          floor: 1,
+          floorCode: '1st - Floor',
+          studentId: 'u-5',
+          studentName: 'SV 5',
+          studentCode: '52100555',
+          date: '2026-10-05',
+          startTime: '08:00',
+          endTime: '10:00',
+          numberOfPeople: 10,
+          purpose: 'Học bài',
+          qrCode: 'qr-m5',
+          status: 'COMPLETED',
+          createdAt: '2026-10-04T10:00:00Z',
+        },
+      ];
+
+      const result = calculateMonthlyStudentDensity(bookings, '2026-11');
+
+      expect(result.month).toBe('2026-11');
+      expect(result.days).toHaveLength(30);
+      expect(result.days[0].label).toBe('01');
+      expect(result.days[29].label).toBe('30');
+
+      const day5 = result.days.find((d) => d.day === 5);
+      expect(day5?.studentCount).toBe(10);
+      expect(day5?.bookingCount).toBe(2);
+
+      const day12 = result.days.find((d) => d.day === 12);
+      expect(day12?.studentCount).toBe(15);
+      expect(day12?.bookingCount).toBe(1);
+
+      expect(result.totalStudents).toBe(25);
+      expect(result.totalBookings).toBe(3);
+      expect(result.peakDay).toBe('12/11');
+      expect(result.peakStudents).toBe(15);
     });
   });
 });

@@ -7,7 +7,9 @@ import lombok.Setter;
 @Setter
 public class CreateIncidentRequest {
     private String roomId;
+    private String roomCode;
     private String equipmentId;
+    private String equipmentName;
     private String description;
     private String imageUrl;
 }

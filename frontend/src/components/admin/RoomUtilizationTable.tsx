@@ -58,7 +58,7 @@ export const RoomUtilizationTable: React.FC<RoomUtilizationTableProps> = ({
                   <th scope="col" className="w-32 sm:w-44 py-2.5 px-2">
                     Phòng
                   </th>
-                  <th scope="col" className="w-16 sm:w-20 py-2.5 px-2 text-center">
+                  <th scope="col" className="w-20 sm:w-24 py-2.5 px-2 text-center whitespace-nowrap">
                     Tầng
                   </th>
                   <th scope="col" className="py-2.5 pl-2 pr-3">

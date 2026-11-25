@@ -4,23 +4,25 @@ import { ApiEnvelope } from './types';
 export const getAdminDashboardDataApi = async (): Promise<ApiEnvelope<any>> => {
   try {
     return await axiosClient.get('/admin/dashboard');
-  } catch (err) {
-    // Nếu Backend chưa có endpoint /api/admin/dashboard, trả về fallback rỗng để trang Quản trị vẫn hoạt động
-    return {
-      success: true,
-      data: {
-        bookings: [],
-        incidents: [],
-        kpis: {
-          totalBookings: 0,
-          pendingApprovals: 0,
-          openIncidents: 0,
-          utilizationRate: 0,
+  } catch (err: any) {
+    if (err?.status === 404) {
+      return {
+        success: true,
+        data: {
+          bookings: [],
+          incidents: [],
+          kpis: {
+            totalBookings: 0,
+            pendingApprovals: 0,
+            openIncidents: 0,
+            utilizationRate: 0,
+          },
+          hourlyStats: [],
         },
-        hourlyStats: [],
-      },
-      message: 'OK',
-    } as any;
+        message: 'OK',
+      } as any;
+    }
+    throw err;
   }
 };
 

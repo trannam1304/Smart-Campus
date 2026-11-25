@@ -11,10 +11,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     const color = getRoomColor(status as RoomStatus);
     return (
       <span 
-        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap"
         style={{ backgroundColor: color.fill, borderColor: color.stroke, color: color.text }}
       >
-        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color.bgHex }}></span>
+        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color.bgHex }}></span>
         {color.label}
       </span>
     );
@@ -24,56 +24,56 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   switch (status) {
     case 'IN_USE':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0"></span>
           Đang sử dụng
         </span>
       );
     case 'CONFIRMED':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
           Đã xác nhận
         </span>
       );
     case 'PENDING_APPROVAL':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
           Chờ duyệt
         </span>
       );
     case 'COMPLETED':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>
           Hoàn thành
         </span>
       );
     case 'CANCELLED_AUTO':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
           Hủy tự động
         </span>
       );
     case 'CANCELLED_USER':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>
           Đã hủy
         </span>
       );
     case 'CANCELLED_ADMIN':
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
           Bị từ chối
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 whitespace-nowrap">
           {status}
         </span>
       );

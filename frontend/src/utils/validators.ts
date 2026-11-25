@@ -1,5 +1,3 @@
-import { STUDENT_EMAIL_DOMAIN } from '../config/bookingRules';
-
 export const STUDENT_CODE_REGEX = /^\d{8}$/;
 export const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
 
@@ -64,27 +62,4 @@ export const getPasswordError = (value: string): string => {
   }
 
   return 'Mật khẩu chưa đáp ứng yêu cầu bảo mật';
-};
-
-/**
- * Kiểm tra tính hợp lệ của Email sinh viên.
- * Bắt buộc kết thúc bằng STUDENT_EMAIL_DOMAIN (@student.edu.vn).
- */
-export const getEmailError = (value: string): string => {
-  const trimmed = (value || '').trim();
-  if (!trimmed) {
-    return 'Vui lòng nhập email';
-  }
-
-  const domain = STUDENT_EMAIL_DOMAIN;
-  if (!trimmed.toLowerCase().endsWith(domain.toLowerCase())) {
-    return `Email sinh viên phải có đuôi ${domain}`;
-  }
-
-  const prefix = trimmed.slice(0, trimmed.length - domain.length);
-  if (!prefix || /[\s@]/.test(prefix)) {
-    return `Email sinh viên không hợp lệ (phải có đuôi ${domain})`;
-  }
-
-  return '';
 };

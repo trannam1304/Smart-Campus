@@ -309,11 +309,14 @@ export const MyBookingsPage: React.FC = () => {
     return Array.from(map.entries());
   }, [filteredBookings]);
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayStr = useMemo(() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  }, []);
   const tomorrowStr = useMemo(() => {
     const t = new Date();
     t.setDate(t.getDate() + 1);
-    return t.toISOString().split('T')[0];
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
   }, []);
 
   const hasActiveFilters = !!(filterDate || statusFilter !== 'ALL' || searchRoom);
@@ -526,7 +529,7 @@ export const MyBookingsPage: React.FC = () => {
                   return (
                     <div
                       key={b.id}
-                      className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4 hover:shadow-md transition-all flex flex-col justify-between"
+                      className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between"
                     >
                       <div>
                         <div className="flex items-center justify-between mb-4 gap-2">

@@ -32,13 +32,13 @@ describe('IncidentReportForm', () => {
     );
   };
 
-  it('render đầy đủ các trường, nút Chụp ảnh và Chọn ảnh từ máy', () => {
+  it('render đầy đủ các trường và chỉ hiển thị nút Chọn ảnh từ máy', () => {
     renderForm();
 
     expect(screen.getByLabelText(/Chọn Phòng Học Gặp Sự Cố/i)).toBeTruthy();
     expect(screen.getByLabelText(/Thiết Bị Hỏng Hóc/i)).toBeTruthy();
     expect(screen.getByLabelText(/Mô Tả Hiện Trượng Lỗi/i)).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Chụp ảnh sự cố/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Chụp ảnh/i })).toBeNull();
     expect(screen.getByRole('button', { name: /Chọn ảnh từ máy/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Gửi Phản Ánh/i })).toBeTruthy();
   });
@@ -137,6 +137,7 @@ describe('IncidentReportForm', () => {
       expect(createSpy).toHaveBeenCalledTimes(1);
       const callArg = createSpy.mock.calls[0][0];
       expect(callArg.imageFile).toBe(photo);
+      expect(callArg.equipmentName).toBeTruthy();
       expect(callArg.description).toBe('Màn hình máy chiếu không nhận cáp HDMI');
       expect(handleSuccess).toHaveBeenCalledWith('INC-7777');
     });

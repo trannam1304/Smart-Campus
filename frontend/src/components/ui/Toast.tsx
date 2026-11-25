@@ -19,7 +19,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'success', duratio
   }, [message, duration, onClose]);
 
   return (
-    <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-sm font-medium transition-all transform animate-in fade-in slide-in-from-bottom-5 duration-200 ${
+    <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-sm font-medium transition-all transform animate-slide-up ${
       type === 'success' 
         ? 'bg-emerald-900 text-emerald-50 border-emerald-700' 
         : 'bg-rose-900 text-rose-50 border-rose-700'

@@ -76,7 +76,6 @@ describe('RegisterPage', () => {
       data: {
         id: 'u-new',
         fullName: 'Nguyễn Văn Test',
-        email: '52100666@student.edu.vn',
         studentCode: '52100666',
         role: 'STUDENT',
         faculty: 'Công Nghệ Thông Tin',
@@ -85,17 +84,22 @@ describe('RegisterPage', () => {
 
     renderRegisterPage();
 
-    const nameInput = screen.getByPlaceholderText(/La Thái Thành/i);
+    const nameInput = screen.getByPlaceholderText(/Nhập Họ và tên/i);
     const mssvInput = screen.getByPlaceholderText(/Nhập MSSV/i);
-    const facultyInput = screen.getByPlaceholderText(/Công Nghệ Thông Tin/i);
-    const emailInput = screen.getByPlaceholderText(/Email sinh viên/i);
-    const pwInput = screen.getByPlaceholderText(/••••••••/i);
+    const facultyInput = screen.getByPlaceholderText(/Nhập Khoa/i);
+    const pwInput = screen.getByPlaceholderText(/••••••••/i) as HTMLInputElement;
+    const togglePwBtn = screen.getByRole('button', { name: /Hiện mật khẩu/i });
     const submitBtn = screen.getByRole('button', { name: /Tạo Tài Khoản/i });
+
+    expect(pwInput.type).toBe('password');
+    fireEvent.click(togglePwBtn);
+    expect(pwInput.type).toBe('text');
+    fireEvent.click(screen.getByRole('button', { name: /Ẩn mật khẩu/i }));
+    expect(pwInput.type).toBe('password');
 
     fireEvent.change(nameInput, { target: { value: 'Nguyễn Văn Test' } });
     fireEvent.change(mssvInput, { target: { value: '52100666' } });
     fireEvent.change(facultyInput, { target: { value: 'Công Nghệ Thông Tin' } });
-    fireEvent.change(emailInput, { target: { value: '52100666@student.edu.vn' } });
     fireEvent.change(pwInput, { target: { value: 'Password123@' } });
 
     // Khi đã nhập đủ và đúng, nút đăng ký không còn bị disabled
@@ -107,7 +111,6 @@ describe('RegisterPage', () => {
       expect(registerSpy).toHaveBeenCalledTimes(1);
       expect(registerSpy).toHaveBeenCalledWith({
         fullName: 'Nguyễn Văn Test',
-        email: '52100666@student.edu.vn',
         studentCode: '52100666',
         password: 'Password123@',
         faculty: 'Công Nghệ Thông Tin',

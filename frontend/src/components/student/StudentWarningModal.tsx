@@ -132,7 +132,7 @@ export const StudentWarningModal: React.FC<StudentWarningModalProps> = ({
                 Bạn Đang Có {summary.warningCount} Cảnh Báo Vi Phạm
               </div>
               <p>
-                Nếu vi phạm quá 3 lần, tài khoản sẽ tự động bị khóa quyền đặt phòng theo Quy chế sử dụng Thư viện Tòa L.
+                Nếu vi phạm quá 3 lần, tài khoản sẽ tự động bị khóa quyền đặt phòng theo Quy chế sử dụng Thư Viện Thông Minh.
               </p>
             </div>
           )}

@@ -64,7 +64,7 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        className={`bg-white flex flex-col w-full ${sizeClasses} max-h-[100dvh] sm:max-h-[90dvh] rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all ${className}`}
+        className={`bg-white flex flex-col w-full ${sizeClasses} max-h-[100dvh] sm:max-h-[90dvh] rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-scale-up ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header shrink-0 */}

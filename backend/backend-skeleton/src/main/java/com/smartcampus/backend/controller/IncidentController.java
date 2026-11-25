@@ -30,19 +30,22 @@ public class IncidentController {
             @RequestBody CreateIncidentRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        String roomId = request != null && request.getRoomId() != null ? request.getRoomId() : "";
+        String roomId = request != null && request.getRoomCode() != null && !request.getRoomCode().isBlank()
+                ? request.getRoomCode()
+                : (request != null && request.getRoomId() != null ? request.getRoomId() : "");
         Long equipmentId = null;
         if (request != null && request.getEquipmentId() != null) {
             try {
                 equipmentId = Long.parseLong(request.getEquipmentId().replaceAll("[^0-9]", ""));
             } catch (Exception ignored) {}
         }
+        String equipmentName = request != null ? request.getEquipmentName() : null;
         String description = request != null && request.getDescription() != null ? request.getDescription() : "Sự cố thiết bị";
         String rawImageUrl = request != null ? request.getImageUrl() : null;
         String imageUrl = saveImage(null, rawImageUrl);
         String reporterEmail = userDetails != null ? userDetails.getUsername() : "admin@smartcampus.tdtu.edu.vn";
 
-        Map<String, Object> result = incidentService.createIncident(roomId, equipmentId, description, imageUrl, reporterEmail);
+        Map<String, Object> result = incidentService.createIncident(roomId, equipmentId, equipmentName, description, imageUrl, reporterEmail);
         return ResponseEntity.status(201).body(ApiResponse.created(result));
     }
 
@@ -54,6 +57,7 @@ public class IncidentController {
             @RequestParam("roomId") String roomId,
             @RequestParam(value = "roomCode", required = false) String roomCode,
             @RequestParam(value = "equipmentId", required = false) String equipmentIdStr,
+            @RequestParam(value = "equipmentName", required = false) String equipmentName,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "image", required = false) MultipartFile image,
             @RequestParam(value = "imageUrl", required = false) String base64ImageUrl,
@@ -69,51 +73,43 @@ public class IncidentController {
 
         String imageUrl = saveImage(image, base64ImageUrl);
         String reporterEmail = userDetails != null ? userDetails.getUsername() : "admin@smartcampus.tdtu.edu.vn";
-        Map<String, Object> result = incidentService.createIncident(effectiveRoom, equipmentId, description != null ? description : "Sự cố thiết bị", imageUrl, reporterEmail);
+        Map<String, Object> result = incidentService.createIncident(effectiveRoom, equipmentId, equipmentName, description != null ? description : "Sự cố thiết bị", imageUrl, reporterEmail);
         return ResponseEntity.status(201).body(ApiResponse.created(result));
     }
 
     private String saveImage(MultipartFile file, String base64Data) {
         try {
-            java.nio.file.Path uploadDir = java.nio.file.Paths.get("uploads", "incidents").toAbsolutePath().normalize();
-            if (!java.nio.file.Files.exists(uploadDir)) {
-                java.nio.file.Files.createDirectories(uploadDir);
-            }
-
             if (file != null && !file.isEmpty()) {
-                String originalFilename = file.getOriginalFilename();
-                String ext = "jpg";
-                if (originalFilename != null && originalFilename.contains(".")) {
-                    ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                String contentType = file.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    String originalFilename = file.getOriginalFilename();
+                    String ext = "jpeg";
+                    if (originalFilename != null && originalFilename.contains(".")) {
+                        ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+                        if ("jpg".equals(ext)) ext = "jpeg";
+                    }
+                    contentType = "image/" + ext;
                 }
-                String filename = "inc_" + System.currentTimeMillis() + "_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "." + ext;
-                java.nio.file.Path target = uploadDir.resolve(filename);
-                java.nio.file.Files.copy(file.getInputStream(), target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                return "/uploads/incidents/" + filename;
+                String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+                return "data:" + contentType + ";base64," + base64;
             }
 
             if (base64Data != null && !base64Data.isBlank()) {
-                if (base64Data.startsWith("http://") || base64Data.startsWith("https://") || base64Data.startsWith("/uploads/")) {
-                    return base64Data;
+                String trimmed = base64Data.trim();
+                if (trimmed.startsWith("data:") || trimmed.startsWith("http://")
+                        || trimmed.startsWith("https://") || trimmed.startsWith("/uploads/")) {
+                    return trimmed;
                 }
-                String cleanBase64 = base64Data;
-                String ext = "jpg";
-                if (base64Data.contains(",")) {
-                    String[] parts = base64Data.split(",", 2);
-                    String header = parts[0];
-                    cleanBase64 = parts[1];
-                    if (header.contains("png")) ext = "png";
-                    else if (header.contains("jpeg") || header.contains("jpg")) ext = "jpg";
-                    else if (header.contains("webp")) ext = "webp";
+                if (trimmed.startsWith("iVBOR")) {
+                    return "data:image/png;base64," + trimmed;
                 }
-                byte[] bytes = Base64.getDecoder().decode(cleanBase64.trim());
-                String filename = "inc_" + System.currentTimeMillis() + "_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "." + ext;
-                java.nio.file.Path target = uploadDir.resolve(filename);
-                java.nio.file.Files.write(target, bytes);
-                return "/uploads/incidents/" + filename;
+                if (trimmed.startsWith("UklGR")) {
+                    return "data:image/webp;base64," + trimmed;
+                }
+                return "data:image/jpeg;base64," + trimmed;
             }
         } catch (Exception ex) {
-            org.slf4j.LoggerFactory.getLogger(IncidentController.class).warn("Không thể lưu ảnh sự cố: " + ex.getMessage(), ex);
+            org.slf4j.LoggerFactory.getLogger(IncidentController.class).warn("Không thể xử lý ảnh sự cố: " + ex.getMessage(), ex);
         }
         return null;
     }

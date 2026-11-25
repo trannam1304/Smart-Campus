@@ -723,9 +723,9 @@ export const InteractiveFloorPlan: React.FC<InteractiveFloorPlanProps> = ({
 
             {/* Building Watermark in Courtyard (Dịch chuyển xuống dưới thoáng đãng, cân đối bên phải nhánh dọc) */}
             <g transform={`translate(${Math.round(imgW * 0.59)}, ${Math.round(imgH * 0.46)})`} opacity={0.45}>
-              <rect x="-12" y="-14" width="134" height="48" rx="8" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
-              <text x="55" y="8" textAnchor="middle" fontSize="11" fontWeight="900" fill="#475569" letterSpacing="1">
-                TÒA L • THƯ VIỆN
+              <rect x="-24" y="-14" width="158" height="48" rx="8" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
+              <text x="55" y="8" textAnchor="middle" fontSize="10" fontWeight="900" fill="#475569" letterSpacing="0.8">
+                THƯ VIỆN THÔNG MINH
               </text>
               <text x="55" y="24" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#64748b">
                 {floor?.floorCode ? floor.floorCode.toUpperCase() : `TẦNG ${floor?.floorNumber ?? ''}`}

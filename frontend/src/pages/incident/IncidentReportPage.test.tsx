@@ -168,10 +168,10 @@ describe('IncidentReportPage', () => {
     expect(roomSelect.value).toBe('r-g01');
   });
 
-  it('hiển thị hai nút Chụp ảnh và Chọn ảnh từ máy', async () => {
+  it('chỉ hiển thị nút Chọn ảnh từ máy (không hiển thị nút Chụp ảnh)', async () => {
     renderComponent({ roomId: 'r-g01' });
 
-    expect(screen.getByRole('button', { name: /Chụp ảnh sự cố/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Chụp ảnh/i })).toBeNull();
     expect(screen.getByRole('button', { name: /Chọn ảnh từ máy/i })).toBeTruthy();
   });
 });

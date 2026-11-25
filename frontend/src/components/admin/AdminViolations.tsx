@@ -80,8 +80,7 @@ export const AdminViolations: React.FC = () => {
       const matchSearch =
         !searchTerm.trim() ||
         v.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.studentCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.email.toLowerCase().includes(searchTerm.toLowerCase());
+        v.studentCode.toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchSearch) return false;
 
@@ -288,7 +287,7 @@ export const AdminViolations: React.FC = () => {
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Tìm sinh viên theo MSSV, Họ tên hoặc Email..."
+                placeholder="Tìm sinh viên theo MSSV hoặc Họ tên..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -351,7 +350,7 @@ export const AdminViolations: React.FC = () => {
                       </div>
                       <div className="text-xs text-slate-500 flex flex-wrap gap-x-4">
                         <span>Khoa: {student.department || 'Chưa cập nhật'}</span>
-                        <span>Email: {student.email}</span>
+                        <span>Số lần vắng mặt: {student.noShowCount ?? 0}</span>
                       </div>
                     </div>
 

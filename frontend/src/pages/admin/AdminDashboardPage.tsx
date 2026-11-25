@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AdminKPICards } from '../../components/admin/AdminKPICards';
 import { FloorUtilizationChart } from '../../components/admin/FloorUtilizationChart';
 import { HourlyBookingsChart } from '../../components/admin/HourlyBookingsChart';
+import { MonthlyStudentDensityChart } from '../../components/admin/MonthlyStudentDensityChart';
 import { RoomUtilizationTable } from '../../components/admin/RoomUtilizationTable';
 import { AdminBookingTable } from '../../components/admin/AdminBookingTable';
 import { AdminViolations } from '../../components/admin/AdminViolations';
@@ -40,11 +41,46 @@ import {
   calculateFloorUtilization,
   calculateHourlyBookings,
   calculateKPISummary,
+  calculateMonthlyStudentDensity,
   calculateRoomUtilization,
 } from '../../utils/adminAnalytics';
 
-const VALID_TABS = ['OVERVIEW', 'ROOMS', 'REGISTRATIONS', 'BOOKINGS', 'INCIDENTS'] as const;
+const VALID_TABS = ['OVERVIEW', 'ROOMS', 'REGISTRATIONS', 'BOOKINGS', 'INCIDENTS', 'VIOLATIONS'] as const;
 type AdminTab = typeof VALID_TABS[number];
+
+const resolveIncidentImageUrl = (rawUrl?: string): string => {
+  if (!rawUrl) return '';
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return '';
+  if (
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('blob:')
+  ) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/9j/')) {
+    return `data:image/jpeg;base64,${trimmed}`;
+  }
+  if (trimmed.startsWith('iVBOR')) {
+    return `data:image/png;base64,${trimmed}`;
+  }
+  if (trimmed.startsWith('UklGR')) {
+    return `data:image/webp;base64,${trimmed}`;
+  }
+  const normalizedPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+  if (apiBase.startsWith('http')) {
+    try {
+      const origin = new URL(apiBase).origin;
+      return `${origin}${normalizedPath}`;
+    } catch {
+      // ignore invalid URL
+    }
+  }
+  return normalizedPath;
+};
 
 export const AdminDashboardPage: React.FC = () => {
   const location = useLocation();
@@ -63,6 +99,10 @@ export const AdminDashboardPage: React.FC = () => {
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
+  });
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
 
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -117,8 +157,11 @@ export const AdminDashboardPage: React.FC = () => {
     if (isInitial) setIsLoading(true);
     setError(null);
     try {
-      // Tải dữ liệu dashboard
-      const dashRes = await getAdminDashboardDataApi();
+      // Tải song song dữ liệu dashboard và danh sách phòng (kèm phòng bảo trì cho admin)
+      const [dashRes, roomsRes] = await Promise.all([
+        getAdminDashboardDataApi(),
+        getRoomsApi({ includeMaintenance: true }),
+      ]);
       if (dashRes.success) {
         setBookings(dashRes.data.bookings || []);
         setIncidents(dashRes.data.incidents || []);
@@ -126,8 +169,6 @@ export const AdminDashboardPage: React.FC = () => {
         throw new Error(getErrorMessage(dashRes));
       }
 
-      // Tải danh sách phòng (kèm phòng bảo trì cho admin)
-      const roomsRes = await getRoomsApi({ includeMaintenance: true });
       if (roomsRes.success && roomsRes.data) {
         setAllRooms(roomsRes.data.items);
       }
@@ -336,6 +377,11 @@ export const AdminDashboardPage: React.FC = () => {
     [allRooms, bookings, selectedDate]
   );
 
+  const monthlyStudentDensityData = useMemo(
+    () => calculateMonthlyStudentDensity(bookings, selectedMonth),
+    [bookings, selectedMonth]
+  );
+
   const incidentStats = useMemo(() => {
     const total = incidents.length;
     const open = incidents.filter((i) => i.status === 'OPEN').length;
@@ -408,12 +454,12 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-28 lg:pb-8 space-y-4 sm:space-y-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-8 space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-blue-600 shrink-0" />
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900">Portal Quản Trị Thư Viện Tòa L</h1>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900">Portal Quản Trị Thư Viện Thông Minh</h1>
           </div>
           <p className="text-xs text-slate-500 font-medium">Bảng điều khiển dành riêng cho Quản trị viên (QTV)</p>
         </div>
@@ -440,7 +486,7 @@ export const AdminDashboardPage: React.FC = () => {
       ) : (
         <>
           {activeTab === 'OVERVIEW' && (
-            <div className="space-y-6">
+            <div key="OVERVIEW" className="space-y-6 animate-fade-in">
               {/* Bộ lọc ngày xem thống kê */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex-wrap">
                 <div>
@@ -486,6 +532,12 @@ export const AdminDashboardPage: React.FC = () => {
                 />
               </div>
 
+              <MonthlyStudentDensityChart
+                data={monthlyStudentDensityData}
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+              />
+
               <RoomUtilizationTable
                 items={roomUtilizationData}
                 selectedDate={selectedDate}
@@ -495,12 +547,12 @@ export const AdminDashboardPage: React.FC = () => {
           )}
 
           {activeTab === 'ROOMS' && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+            <div key="ROOMS" className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-base font-bold text-slate-900">Quản Lý Trạng Thái Bảo Trì Phòng</h3>
                   <p className="text-xs text-slate-500">
-                    Bật chế độ bảo trì hoặc mở trống cho các phòng trong thư viện tòa L.
+                    Bật chế độ bảo trì hoặc mở trống cho các phòng trong Thư Viện Thông Minh.
                   </p>
                 </div>
                 <div className="relative w-full sm:w-64">
@@ -648,7 +700,7 @@ export const AdminDashboardPage: React.FC = () => {
           )}
 
           {activeTab === 'REGISTRATIONS' && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <div key="REGISTRATIONS" className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-base font-bold text-slate-900">Duyệt Đơn Đặt Phòng Hội Nghị</h3>
@@ -757,7 +809,7 @@ export const AdminDashboardPage: React.FC = () => {
           )}
 
           {activeTab === 'INCIDENTS' && (
-            <div className="space-y-6">
+            <div key="INCIDENTS" className="space-y-6 animate-fade-in">
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
@@ -967,6 +1019,7 @@ export const AdminDashboardPage: React.FC = () => {
                   ) : (
                     filteredIncidents.map((inc) => {
                       const formattedTime = formatIncidentDateTime(inc.createdAt);
+                      const resolvedImageUrl = resolveIncidentImageUrl(inc.imageUrl);
                       const reporterDisplay = inc.reporterCode
                         ? `${inc.reporterName} (${inc.reporterCode})`
                         : inc.reporterName || 'N/A';
@@ -977,12 +1030,12 @@ export const AdminDashboardPage: React.FC = () => {
                           className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-colors flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm"
                         >
                           {/* ẢNH ĐÍNH KÈM (nếu có): thu nhỏ 80x80, object-cover, loading="lazy", alt có mô tả */}
-                          {inc.imageUrl && (
+                          {resolvedImageUrl && (
                             <button
                               type="button"
                               onClick={() =>
                                 setSelectedIncidentImage({
-                                  url: inc.imageUrl!.startsWith('/') || inc.imageUrl!.startsWith('http') || inc.imageUrl!.startsWith('data:') ? inc.imageUrl! : `/${inc.imageUrl}`,
+                                  url: resolvedImageUrl,
                                   title: `Ảnh sự cố: Phòng ${inc.roomCode || inc.roomId} - ${inc.deviceName || 'Thiết bị'}`,
                                 })
                               }
@@ -991,18 +1044,16 @@ export const AdminDashboardPage: React.FC = () => {
                               aria-label={`Xem ảnh lớn sự cố: ${inc.description}`}
                             >
                               <img
-                                src={inc.imageUrl.startsWith('/') || inc.imageUrl.startsWith('http') || inc.imageUrl.startsWith('data:') ? inc.imageUrl : `/${inc.imageUrl}`}
+                                src={resolvedImageUrl}
                                 alt={`Ảnh minh họa sự cố: ${inc.description}`}
                                 loading="lazy"
                                 className="w-20 h-20 object-cover group-hover:scale-105 transition-transform"
                                 onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent && !parent.querySelector('.img-fallback-placeholder')) {
-                                    const fallback = document.createElement('div');
-                                    fallback.className = 'img-fallback-placeholder w-20 h-20 bg-slate-100 flex flex-col items-center justify-center text-slate-400 text-[10px] font-semibold text-center p-1';
-                                    fallback.innerHTML = '<span class="text-xs">📷</span><span>Ảnh đính kèm</span>';
-                                    parent.appendChild(fallback);
+                                  const btn = e.currentTarget.closest('button');
+                                  if (btn) {
+                                    btn.style.display = 'none';
+                                  } else {
+                                    e.currentTarget.style.display = 'none';
                                   }
                                 }}
                               />
@@ -1061,6 +1112,11 @@ export const AdminDashboardPage: React.FC = () => {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'VIOLATIONS' && (
+            <div key="VIOLATIONS" className="space-y-6 animate-fade-in">
               <AdminViolations />
             </div>
           )}
@@ -1303,11 +1359,21 @@ export const AdminDashboardPage: React.FC = () => {
           onClose={() => setSelectedIncidentImage(null)}
           title={selectedIncidentImage.title}
         >
-          <div className="flex justify-center p-2">
+          <div className="flex flex-col items-center justify-center p-2">
             <img
               src={selectedIncidentImage.url}
               alt={selectedIncidentImage.title}
               className="max-h-[70vh] w-auto max-w-full rounded-xl object-contain shadow-sm"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent && !parent.querySelector('.modal-img-fallback')) {
+                  const msg = document.createElement('div');
+                  msg.className = 'modal-img-fallback py-10 px-6 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-200 w-full';
+                  msg.textContent = 'Không thể tải tệp ảnh này (ảnh cũ có thể không còn tồn tại trên máy chủ).';
+                  parent.appendChild(msg);
+                }
+              }}
             />
           </div>
         </Modal>

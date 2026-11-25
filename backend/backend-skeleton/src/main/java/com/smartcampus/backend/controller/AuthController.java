@@ -1,10 +1,8 @@
 package com.smartcampus.backend.controller;
 
 import com.smartcampus.backend.dto.request.ChangePasswordRequest;
-import com.smartcampus.backend.dto.request.ForgotPasswordRequest;
 import com.smartcampus.backend.dto.request.LoginRequest;
 import com.smartcampus.backend.dto.request.RegisterRequest;
-import com.smartcampus.backend.dto.request.ResetPasswordRequest;
 import com.smartcampus.backend.dto.request.VerifyEmailRequest;
 import com.smartcampus.backend.dto.response.AuthResponse;
 import com.smartcampus.backend.dto.response.ApiResponse;
@@ -28,14 +26,12 @@ import java.util.Map;
  * <ul>
  *   <li>POST   /api/auth/register          → Đăng ký tài khoản sinh viên (FR-1.1)</li>
  *   <li>POST   /api/auth/verify-email      → Xác thực email kích hoạt tài khoản (FR-1.1)</li>
- *   <li>POST   /api/auth/login             → Đăng nhập đa phương thức (FR-1.2)</li>
+ *   <li>POST   /api/auth/login             → Đăng nhập hệ thống (FR-1.2)</li>
  *   <li>PUT    /api/auth/change-password   → Đổi mật khẩu (yêu cầu đăng nhập) (FR-1.4)</li>
- *   <li>POST   /api/auth/forgot-password   → Gửi mã OTP khôi phục mật khẩu (FR-1.4)</li>
- *   <li>POST   /api/auth/reset-password    → Khôi phục mật khẩu bằng OTP (FR-1.4)</li>
  * </ul>
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/api/v1/auth", "/api/auth"})
 public class AuthController {
 
     private final AuthService authService;
@@ -45,8 +41,8 @@ public class AuthController {
     }
 
     // ------------------------------------------------------------------
-    // FR-1.1: Đăng ký tài khoản sinh viên
-    // Body: { fullName, studentCode, email (@student.edu.vn), password, faculty }
+    // FR-1.1: Đăng ký tài khoản sinh viên (chỉ sử dụng MSSV)
+    // Body: { fullName, studentCode, password, faculty }
     // ------------------------------------------------------------------
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
@@ -82,8 +78,8 @@ public class AuthController {
     }
 
     // ------------------------------------------------------------------
-    // FR-1.2: Đăng nhập đa phương thức (hệ thống & SSO)
-    // Body: { username (email hoặc MSSV), password, googleToken? }
+    // FR-1.2: Đăng nhập hệ thống (tài khoản sinh viên MSSV)
+    // Body: { username (MSSV), password }
     // ------------------------------------------------------------------
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
@@ -199,25 +195,5 @@ public class AuthController {
         String email = userDetails.getUsername();
         AuthResponse result = authService.changePassword(email, request);
         return ResponseEntity.ok(ApiResponse.ok(result));
-    }
-
-    // ------------------------------------------------------------------
-    // FR-1.4: Gửi mã OTP khôi phục mật khẩu
-    // Body: { email }
-    // ------------------------------------------------------------------
-    @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        String message = authService.forgotPassword(request);
-        return ResponseEntity.ok(ApiResponse.ok(message));
-    }
-
-    // ------------------------------------------------------------------
-    // FR-1.4: Khôi phục mật khẩu bằng OTP
-    // Body: { otpCode, newPassword }
-    // ------------------------------------------------------------------
-    @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse<String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        String message = authService.resetPassword(request);
-        return ResponseEntity.ok(ApiResponse.ok(message));
     }
 }

@@ -72,13 +72,13 @@ export const AdminKPICards: React.FC<KPICardsProps> = ({
         return (
           <div
             key={idx}
-            className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-w-0"
+            className="group bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between min-w-0"
           >
             <div className="flex items-center justify-between mb-2 gap-2">
               <span className="text-[11px] font-bold text-slate-500 leading-tight">
                 {card.title}
               </span>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${card.color}`}>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110 ${card.color}`}>
                 <Icon className="w-4 h-4" />
               </div>
             </div>

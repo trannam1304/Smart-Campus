@@ -11,7 +11,7 @@ public interface IncidentService {
     /**
      * Báo cáo sự cố phòng/thiết bị mới.
      */
-    Map<String, Object> createIncident(String roomCodeOrId, Long equipmentId, String description, String imageUrl, String reporterEmail);
+    Map<String, Object> createIncident(String roomCodeOrId, Long equipmentId, String equipmentName, String description, String imageUrl, String reporterEmail);
 
     /**
      * Lấy danh sách toàn bộ sự cố phòng/thiết bị.

@@ -348,4 +348,64 @@ describe('AdminDashboardPage - Tab INCIDENTS', () => {
     expect(screen.getByText('Máy chiếu không lên nguồn')).toBeTruthy();
     expect(screen.getByText('Gãy chân bàn')).toBeTruthy();
   });
+
+  it('tách riêng tab INCIDENTS (không chứa Quản Lý Người Vi Phạm) và tab VIOLATIONS hiển thị Quản Lý Người Vi Phạm', async () => {
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByText(/Xử Lý Phản Ánh Sự Cố/i)).toBeTruthy();
+    });
+
+    expect(screen.queryByText(/Quản Lý Người Vi Phạm & Khiếu Nại/i)).toBeNull();
+
+    cleanup();
+    render(
+      <MemoryRouter initialEntries={['/admin?tab=VIOLATIONS']}>
+        <BookingProvider initialFloors={testFloors}>
+          <AdminDashboardPage />
+        </BookingProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Quản Lý Người Vi Phạm & Khiếu Nại/i)).toBeTruthy();
+    });
+    expect(screen.queryByText(/Xử Lý Phản Ánh Sự Cố/i)).toBeNull();
+  });
+
+  it('hiển thị đúng ảnh base64 thô (không có prefix data:image) trong danh sách sự cố', async () => {
+    vi.mocked(adminApi.getAdminDashboardDataApi).mockResolvedValueOnce({
+      success: true,
+      code: 200,
+      message: 'OK',
+      data: {
+        bookings: [],
+        incidents: [
+          {
+            id: 'INC-B64',
+            roomId: 'r-103',
+            roomCode: 'L.103',
+            deviceName: 'Máy chiếu',
+            reporterName: 'Sinh viên Test',
+            description: 'Ảnh base64 thô',
+            imageUrl: '/9j/4AAQSkZJRgABAQAAAQABAAD',
+            status: 'OPEN',
+            createdAt: '2026-09-25 10:15',
+          },
+        ],
+        kpis: { totalBookingsToday: 0, pendingApprovals: 0, activeNow: 0, openIncidents: 1 },
+      },
+      timestamp: new Date().toISOString(),
+    });
+
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getByText('Ảnh base64 thô')).toBeTruthy();
+    });
+
+    const thumbBtn = screen.getByRole('button', { name: /Xem ảnh lớn sự cố: Ảnh base64 thô/i });
+    const img = thumbBtn.querySelector('img');
+    expect(img?.getAttribute('src')).toBe('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD');
+  });
 });
